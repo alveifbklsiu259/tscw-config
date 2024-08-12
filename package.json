@@ -1,6 +1,6 @@
 {
   "name": "tsc-with-config",
-  "version": "1.0.0",
+  "version": "0.0.0-semantically-released",
   "bin": {
     "tscw": "./dist/cli.js"
   },
