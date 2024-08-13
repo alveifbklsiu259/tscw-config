@@ -39,7 +39,7 @@ const tempFileName = path.join(process.cwd(), "/tmp_ts_config_name.txt");
 const signals = ["exit", "SIGINT", "SIGHUP", "SIGTERM"] as const;
 
 for (const signal of signals) {
-    process.on(signal, (exitCode) => {
+    process.on(signal, () => {
         if (fs.existsSync(tempFileName)) {
             const tmpFile = fs.readFileSync(tempFileName, "utf8").trim();
             if (fs.existsSync(tmpFile)) {
@@ -51,6 +51,6 @@ for (const signal of signals) {
             child.kill(signal);
         }
         // eslint-disable-next-line
-        process.exit(exitCode);
+        process.exit(child.exitCode);
     });
 }
