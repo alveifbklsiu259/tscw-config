@@ -98,19 +98,17 @@ rawData=$(<"$tmp_file")
 # Remove single-line comments (// comments)
 rawData=$(echo "$rawData" | sed 's|//.*$||g')
 
-# Remove multi-line comments (/* comments */)
-rawData=$(echo "$rawData" | sed -E ':a;N;$!ba;s|/\*[^*]*\*+([^/*][^*]*\*+)*/||g')
-
 echo "$rawData" > "$tmp_file"
 
 if [ "${#files[@]}" -lt 1 ]; then 
 	if ! grep --perl-regexp --null-data --quiet '"pretty"\s*:\s*(true|false)' "$tmp_file"; then
 		flags=("--pretty" "${flags[@]}")
 	fi
-	npx tsc --project "$ts_config_dir/$(basename "$tmp_file")" "${flags[@]}" 2>&1 &
+	npx tsc --project "$ts_config_dir/$(basename "$tmp_file")" "${flags[@]}" >&2 &
 
-	wait
-	exit 0
+	tsc_pid=$!
+	wait $tsc_pid
+	exit $?
 fi
 
 relative_paths_to_ts_config=""
@@ -145,7 +143,8 @@ fi
 # No need to handle exclude field. see https://www.typescriptlang.org/tsconfig/#exclude
 
 # Forward CLI options
-npx tsc --project "$ts_config_dir/$(basename "$tmp_file")" "${flags[@]}" 2>&1 &
+npx tsc --project "$ts_config_dir/$(basename "$tmp_file")" "${flags[@]}" >&2 &
 
-wait 
-exit 0
+tsc_pid=$!
+wait $tsc_pid
+exit $?

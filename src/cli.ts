@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import fs from "node:fs"
-import { exec } from "child_process"
-import path from "node:path"
+import fs from "node:fs";
+import { exec } from "child_process";
+import path from "node:path";
 
 const toPosixPath = (p: string) => p.split(path.win32.sep).join(path.posix.sep);
 const args = process.argv
@@ -38,7 +38,7 @@ const tempFileName = path.join(process.cwd(), "/tmp_ts_config_name.txt");
 
 const signals = ["exit", "SIGINT", "SIGHUP", "SIGTERM"] as const;
 
-for (const signal of signals ) {
+for (const signal of signals) {
     process.on(signal, (exitCode) => {
         if (fs.existsSync(tempFileName)) {
             const tmpFile = fs.readFileSync(tempFileName, "utf8").trim();
