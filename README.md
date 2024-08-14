@@ -47,9 +47,9 @@ npx tscw **/*.ts  # match ./foo/baz.ts, ./bar/foo.ts ...
 
 ## Use case
 
-A common use case for running `tsc` on certain files is when used in a pre-commit hook. e.g. [lint-staged](https://github.com/lint-staged/lint-staged).  
+A common use case for running `tsc` on certain files is when used in a pre-commit hook. e.g. [lint-staged](https://github.com/lint-staged/lint-staged).
 
-For example only type-check staged files by running `tsc --noEmit foo.ts bar.ts`, in this case `tsc` will ignore the `tsconfig.json`, using `-p tsconfig.json` with files will result in an error.  
+For example only type-check staged files by running `tsc --noEmit foo.ts bar.ts`, in this case `tsc` will ignore the `tsconfig.json`, using `-p tsconfig.json` with files will result in an error.
 
 You can explicitly pass the CLI options in. e.g. `--strict --allowSyntheticDefaultImports ...` to `tsc`, but that can be tedious.
 
@@ -57,12 +57,11 @@ Using `tscw` is much easier: `tscw --noEmit foo.ts bar.ts -p tsconfig.json`.
 
 ## How it works
 
-The main functionalities are written in a bash script, here're the things that it does.
-
 1. CLI Argument Parsing:
    - The script processes command-line arguments to handle flags and file paths.
 2. Finding `tsconfig.json`:
-   - If no `tsconfig.json` file is specified via the `-p` or `--project` flag, the script uses the nearest `tsconfig.json` file. It first looks for the current working directory, if not found, it goes up one level and search until reach `/`.
+   - If no `tsconfig.json` file is specified via the `-p` or `--project` flag, the nearest `tsconfig.json` file will be used for the current workspace.
+   - The script first looks for the current working directory, if not found, it goes all the way up until the level where `package.json` is located.
 3. Temporary File:
    - A temporary file is created to store the content of the `tsconfig.json` file being used.
    - It adds/replaces the `"files"` field with the files specified.
