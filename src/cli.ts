@@ -4,28 +4,16 @@ import fs from "fs";
 import path from "path";
 import { exit } from "process";
 
-const resolveFromModule = (moduleName: string, ...paths: string[]) => {
-    const modulePath = path.dirname(
-        require.resolve(`${moduleName}/package.json`)
-    );
-    return path.join(modulePath, ...paths);
-};
-
 const fileExists = (...paths: string[]) => fs.existsSync(path.join(...paths));
 
 const getRootDirForCurrentWorkSpace = () => {
     let dir = process.cwd();
 
-    while (dir.split(path.sep).length > 2) {
+    while (dir !== path.parse(dir).root) {
         if (fileExists(dir, "package.json")) {
             return dir;
         }
         dir = path.dirname(dir);
-    }
-
-    // This dir hasn't been searched yet
-    if (fileExists(dir, "package.json")) {
-        return dir;
     }
     return null;
 };
@@ -103,16 +91,21 @@ for (const [idx, arg] of args.entries()) {
 }
 
 const spawnProcessSync = (args: string[]) => {
-    return spawnSync(
+    const child = spawnSync(
         process.versions.pnp
             ? "tsc"
-            : resolveFromModule(
-                  "typescript",
-                  `../.bin/tsc${process.platform === "win32" ? ".cmd" : ""}`
+            : path.join(
+                  rootDirForCurrentWorkSpace,
+                  `/node_modules/.bin/tsc${process.platform === "win32" ? ".cmd" : ""}`
               ),
         args,
         { stdio: "inherit" }
     );
+    if (child.error) {
+        console.error(child.error);
+        exit(1);
+    }
+    return child;
 };
 
 let child: SpawnSyncReturns<Buffer>;
