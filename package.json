@@ -8,6 +8,9 @@
     "build": "tsc",
     "prepublishOnly": "npm run build"
   },
+  "files": [
+    "dist"
+  ],
   "author": "alveifbklsiu259 <https://github.com/alveifbklsiu259>",
   "license": "MIT",
   "description": "A CLI tool that allows user to run tsc with files and tsconfig.json at the same time",

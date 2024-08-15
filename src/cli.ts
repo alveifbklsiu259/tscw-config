@@ -76,8 +76,8 @@ for (const [idx, arg] of args.entries()) {
 
     if (arg.toLowerCase() === "-p" || arg.toLowerCase() === "-project") {
         indexOfProjectFlag = idx;
-        const tsconfig = args[idx + 1];
-        if (!tsconfig) {
+        const tsconfigArg = args[idx + 1];
+        if (!tsconfigArg) {
             console.error(`Missing argument for ${arg}`);
             exit(1);
         }
@@ -172,7 +172,7 @@ if (tsconfig && fileExists(process.cwd(), tsconfig)) {
     rawData = rawData.replace(/\/\*[\s\S]*?\*\/(?!\*|\.)/g, "");
 
     // Remove trailing comma
-    rawData = rawData.replace(/,\s*([\]}])/g, '$1');
+    rawData = rawData.replace(/,\s*([\]}])/g, "$1");
 
     const jsonData = JSON.parse(rawData) as Record<string, unknown>;
 
@@ -194,7 +194,7 @@ console.error(
     tsconfig
         ? `Can't find ${tsconfig}`
         : indexOfProjectFlag === -1
-        ? "Can't find tsconfig.json"
-        : `Missing argument for ${args[indexOfProjectFlag]}`
+          ? "Can't find tsconfig.json"
+          : `Missing argument for ${args[indexOfProjectFlag]}`
 );
 exit(1);
