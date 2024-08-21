@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawnSync, SpawnSyncReturns } from "child_process";
+import { spawnSync, SpawnSyncReturns, spawn } from "child_process";
 import fs from "fs";
 import path from "path";
 import { exit } from "process";
@@ -96,7 +96,10 @@ const spawnProcessSync = (args: string[]) => {
             ? "tsc"
             : path.join(
                   rootDirForCurrentWorkSpace,
-                  `/node_modules/.bin/tsc${process.platform === "win32" ? ".cmd" : ""}`
+                  `/node_modules/.bin/tsc${
+                      // Windows is case-insensitive about file extension.
+                      process.platform === "win32" ? ".cmd" : ""
+                  }`
               ),
         args,
         { stdio: "inherit" }
@@ -177,6 +180,22 @@ if (tsconfig && fileExists(process.cwd(), tsconfig)) {
 
     // Remove "include" field
     delete jsonData.include;
+
+    // https://nodejs.org/api/process.html#signal-events
+    // On Windows, when a process is terminated by `process.kill` or `subProcess.kill`, signal will not be caught.
+    if (process.platform === "win32") {
+        // Create a daemon by double-forking.
+        const intermediate = spawn(
+            process.argv[0],
+            ["intermediate.js", process.pid.toString(), tmpTsconfig],
+            {
+                detached: true,
+                stdio: "ignore",
+            }
+        );
+        intermediate.unref();
+    }
+
     fs.writeFileSync(tmpTsconfig, JSON.stringify(jsonData, null, 2));
 
     child = spawnProcessSync(["-p", tmpTsconfig, ...remainingCliOptions]);
@@ -187,7 +206,7 @@ console.error(
     tsconfig
         ? `Can't find ${tsconfig}`
         : indexOfProjectFlag === -1
-          ? "Can't find tsconfig.json"
-          : `Missing argument for ${args[indexOfProjectFlag]}`
+        ? "Can't find tsconfig.json"
+        : `Missing argument for ${args[indexOfProjectFlag]}`
 );
 exit(1);
