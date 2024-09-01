@@ -1,0 +1,7 @@
+# Prettier will follow rules specified in .gitignore if it exists in the same directory from which it is run.
+# Ignore artifacts:
+coverage
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+.env
