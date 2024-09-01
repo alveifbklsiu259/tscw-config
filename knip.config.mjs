@@ -7,5 +7,4 @@ export default {
 	ignoreExportsUsedInFile: true,
 	includeEntryExports: true,
 	ignore: ["./test/fixtures/*.*", "./src/cleanupMonitor.ts", "./src/intermediate.ts"],
-	ignoreDependencies: ["@types/jest"],
 };

@@ -1,3 +1,3 @@
 type A = number;
 
-const a: A = "";
+const _a: A = "";

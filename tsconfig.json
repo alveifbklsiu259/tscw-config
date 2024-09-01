@@ -3,8 +3,8 @@
 		"incremental": true,
 		"tsBuildInfoFile": "./.lint-cache/.tsbuildinfo",
 		"target": "es2016",
-		"module": "commonjs",
-		"moduleResolution": "node",
+		"module": "node16",
+		"moduleResolution": "node16",
 		"esModuleInterop": true,
 		"forceConsistentCasingInFileNames": true,
 		"strict": true,
@@ -14,6 +14,17 @@
 		"checkJs": true,
 		"pretty": true
 	},
-	"include": ["./src/**/*.ts"],
+	"include": [
+		// *.js does not match a file with leading dot. e.g. ".foo.js".
+		"./src",
+		"./**/*.ts",
+		"./**/*.d.ts",
+		"./**/*.js",
+		"./**/.*.js",
+		"./**/*.mjs",
+		"./**/.*.mjs",
+		"./**/*.cjs",
+		"./**/.*.cjs"
+	],
 	"exclude": ["./dist"]
 }

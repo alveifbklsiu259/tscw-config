@@ -1,10 +1,9 @@
 import { expect, jest, it } from "@jest/globals";
+import childProcess, { SpawnSyncReturns } from "node:child_process";
 import path, { type ParsedPath } from "node:path";
 import { fileExists, getRootDirForCurrentWorkSpace, getNearestTsconfig, spawnProcessSync } from "../../src/lib/util";
-import { delay, getFixtureFile, toArray, cliSync } from "../lib/util";
 import "../lib/toBeWithinRange";
-
-import childProcess, { SpawnSyncReturns } from "node:child_process";
+import { delay, getFixtureFile, toArray, cliSync } from "../lib/util";
 
 afterEach(() => {
 	jest.restoreAllMocks();
@@ -102,6 +101,7 @@ describe("delay", () => {
 
 		expect(resolve).toBe(false);
 
+		/* eslint-disable-next-line */
 		jest.advanceTimersByTimeAsync(ms);
 
 		await promise;
@@ -145,7 +145,7 @@ describe("toArray", () => {
 describe("cliSync", () => {
 	it("should call spawnSync with the right args", () => {
 		const mockSpawnSync = jest.spyOn(childProcess, "spawnSync");
-		cliSync`${getFixtureFile("success1.ts")} --noEmit`;
+		const _child = cliSync`${getFixtureFile("success1.ts")} --noEmit`;
 
 		expect(mockSpawnSync).toHaveBeenCalledTimes(1);
 		expect(mockSpawnSync).toHaveBeenCalledWith(

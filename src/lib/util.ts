@@ -1,6 +1,6 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import { exit } from "node:process";
 
 export const fileExists = (...paths: string[]) => fs.existsSync(path.join(...paths));

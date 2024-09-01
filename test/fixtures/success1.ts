@@ -1,3 +1,3 @@
 type B = number;
 
-const b: B = 1;
+const _b: B = 1;

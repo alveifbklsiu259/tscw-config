@@ -4,7 +4,7 @@ import path from "path";
 import { fileExists, getRootDirForCurrentWorkSpace, getNearestTsconfig, spawnProcessSync } from "./lib/util";
 
 const main = (args: string[]) => {
-	let rootDirForCurrentWorkSpace = getRootDirForCurrentWorkSpace();
+	const rootDirForCurrentWorkSpace = getRootDirForCurrentWorkSpace();
 
 	if (!rootDirForCurrentWorkSpace) {
 		return {

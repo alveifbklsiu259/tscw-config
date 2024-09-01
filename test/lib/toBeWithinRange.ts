@@ -11,7 +11,7 @@ const toBeWithinRange: MatcherFunction<[floor: unknown, ceiling: unknown]> = fun
 		return {
 			message: () =>
 				`expected ${this.utils.printReceived(actual)} not to be within range ${this.utils.printExpected(
-					`${floor} - ${ceiling}`,
+					`${floor.toString()} - ${ceiling.toString()}`,
 				)}`,
 			pass: true,
 		};
@@ -19,7 +19,7 @@ const toBeWithinRange: MatcherFunction<[floor: unknown, ceiling: unknown]> = fun
 		return {
 			message: () =>
 				`expected ${this.utils.printReceived(actual)} to be within range ${this.utils.printExpected(
-					`${floor} - ${ceiling}`,
+					`${floor.toString()} - ${ceiling.toString()}`,
 				)}`,
 			pass: false,
 		};

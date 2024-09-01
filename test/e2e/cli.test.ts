@@ -1,11 +1,11 @@
-import { expect, jest, it, test } from "@jest/globals";
+import { expect, jest, it, test, afterEach, describe } from "@jest/globals";
 import { spawn } from "child_process";
+import { readdirSync, watch, statSync } from "fs";
 import path, { ParsedPath } from "path";
+import pidTree from "pidtree";
+import main from "../../src/index";
 import * as utils from "../../src/lib/util";
 import { isRunning } from "../../src/lib/util";
-import main from "../../src/index";
-import { readdirSync, watch, statSync } from "fs";
-import pidTree from "pidtree";
 import { delay, getFixtureFile, cliSync } from "../lib/util";
 
 afterEach(async () => {
@@ -148,12 +148,16 @@ describe("CLI", () => {
 							for (const childProcess of childPidTree) {
 								process.kill(childProcess);
 							}
-						} catch (e) {}
+						} catch (_e) {
+							/*  */
+						}
 						try {
 							process.kill(child.pid!);
-						} catch (e) {}
+						} catch (_e) {
+							/*  */
+						}
 					}
-				} catch (e) {
+				} catch (_e) {
 					return;
 				} finally {
 					watcher.close();

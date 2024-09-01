@@ -1,7 +1,12 @@
-import path from "path";
 import { spawnSync } from "child_process";
+import path from "path";
 
-export const delay = (ms: number) => new Promise(res => setTimeout(() => res("success"), ms));
+export const delay = (ms: number) =>
+	new Promise(res =>
+		setTimeout(() => {
+			res("success");
+		}, ms),
+	);
 
 export const getFixtureFile = (file: string) => path.join(__dirname, "../fixtures", file);
 
