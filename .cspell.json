@@ -1,0 +1,29 @@
+{
+	"version": "0.2",
+	"language": "en",
+	"dictionaries": ["typescript", "softwareTerms", "node", "en_US", "npm", "fullstack"],
+	"ignorePaths": [
+		".cspell.json",
+		".github/workflows/**",
+		"{pnpm,yarn,package}-lock.*",
+		".vscode/*.json",
+		"**/coverage/**",
+		"**/dist/**",
+		"**/fixtures/**",
+		"**/node_modules/**",
+		".gitignore",
+		".lint-cache"
+	],
+	"enableFiletypes": [
+		"markdown",
+		"typescript",
+		"typescriptreact",
+		"javascript",
+		"javascriptreact",
+		"dockerfile",
+		"css",
+		"scss",
+		"shellscript"
+	],
+	"words": ["alveifbklsiu", "tscw", ".prettiercache", "pidtree", "excludefiles", "knip"]
+}

@@ -5,12 +5,16 @@
 		"tscw": "./dist/cli.js"
 	},
 	"scripts": {
-		"build": "tsc",
+		"clean": "rimraf dist/ .lint-cache/.tsbuildinfo",
+		"build": "npm run clean && tsc",
 		"prepublishOnly": "npm run build",
 		"test": "jest",
 		"test:unit": "jest --testPathPattern=test/unit",
 		"test:e2e": "jest --testPathPattern=test/e2e",
-		"check-format": "prettier . --ignore-unknown --check --cache --cache-strategy metadata --cache-location .lint-cache/.prettiercache"
+		"knip": "knip --config ./knip.config.mjs",
+		"check-format": "prettier . --ignore-unknown --check --cache --cache-strategy metadata --cache-location .lint-cache/.prettiercache",
+		"check-spelling": "cspell . --no-progress --show-context --cache --cache-strategy metadata --cache-location .lint-cache/.cspellcache",
+		"lint-markdown": "markdownlint \"**/*.md\""
 	},
 	"files": [
 		"dist"
@@ -33,10 +37,14 @@
 		"@jest/globals": "^29.7.0",
 		"@types/jest": "^29.5.12",
 		"@types/node": "^22.2.0",
+		"cspell": "^8.14.2",
 		"expect": "^29.7.0",
 		"jest": "^29.7.0",
+		"knip": "^5.29.1",
+		"markdownlint-cli": "^0.41.0",
 		"pidtree": "^0.6.0",
 		"prettier": "^3.3.3",
+		"rimraf": "^6.0.1",
 		"ts-jest": "^29.2.5",
 		"typescript": "^5.5.4"
 	}
