@@ -3,11 +3,11 @@
 	"useTabs": true,
 	"arrowParens": "avoid",
 	"printWidth": 120,
-	"plugins": ["@trivago/prettier-plugin-sort-imports"],
+	"plugins": ["@trivago/prettier-plugin-sort-imports", "prettier-plugin-sh"],
 	"importOrder": ["<THIRD_PARTY_MODULES>", "^[./]"],
 	"overrides": [
 		{
-			"files": "*.md",
+			"files": "*.{sh,md}",
 			"options": {
 				"useTabs": false,
 				"tabWidth": 2

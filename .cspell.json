@@ -12,7 +12,8 @@
 		"**/fixtures/**",
 		"**/node_modules/**",
 		".gitignore",
-		".lint-cache"
+		".lint-cache",
+		"@types/eslintClassicConfig.d.ts" // generated file
 	],
 	"enableFiletypes": [
 		"markdown",
@@ -34,6 +35,7 @@
 		"knip",
 		"tseslint",
 		"trivago",
-		"commitlint"
+		"commitlint",
+		"mktemp"
 	]
 }

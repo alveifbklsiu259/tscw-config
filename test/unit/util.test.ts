@@ -2,8 +2,9 @@ import { expect, jest, it, afterEach, describe } from "@jest/globals";
 import childProcess, { SpawnSyncReturns } from "node:child_process";
 import path, { type ParsedPath } from "node:path";
 import { fileExists, getRootDirForCurrentWorkSpace, getNearestTsconfig, spawnProcessSync } from "../../src/lib/util";
+import { toArray } from "../../src/lib/util";
 import "../lib/toBeWithinRange";
-import { delay, getFixtureFile, toArray, cliSync } from "../lib/util";
+import { delay, getFixtureFile, cliSync } from "../lib/util";
 
 afterEach(() => {
 	jest.restoreAllMocks();

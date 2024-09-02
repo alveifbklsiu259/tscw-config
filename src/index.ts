@@ -1,9 +1,28 @@
 import { SpawnSyncReturns, spawn } from "child_process";
 import fs from "fs";
 import path from "path";
-import { fileExists, getRootDirForCurrentWorkSpace, getNearestTsconfig, spawnProcessSync } from "./lib/util";
+import { fileExists, getRootDirForCurrentWorkSpace, getNearestTsconfig, spawnProcessSync, toArray } from "./lib/util";
 
-const main = (args: string[]) => {
+type SpawnSyncReturnsLike =
+	| SpawnSyncReturns<Buffer>
+	| {
+			status: number;
+			stderr: string;
+			stdout: null;
+	  };
+
+function main(strings: TemplateStringsArray, ...values: unknown[]): SpawnSyncReturnsLike;
+function main(strings: string[], ...values: never[]): SpawnSyncReturnsLike;
+function main(strings: TemplateStringsArray | string[], ...values: unknown[] | never[]): SpawnSyncReturnsLike {
+	let args: string[];
+
+	if (Array.isArray(strings) && "raw" in strings) {
+		// Handle TemplateStringsArray
+		args = toArray(strings as TemplateStringsArray, values as unknown[]);
+	} else {
+		args = strings as string[];
+	}
+
 	const rootDirForCurrentWorkSpace = getRootDirForCurrentWorkSpace();
 
 	if (!rootDirForCurrentWorkSpace) {
@@ -165,6 +184,6 @@ const main = (args: string[]) => {
 				: `Missing argument for ${args[indexOfProjectFlag]}`,
 		stdout: null,
 	};
-};
+}
 
-export default main;
+export = main;

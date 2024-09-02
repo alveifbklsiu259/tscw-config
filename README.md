@@ -33,13 +33,13 @@ npx tscw foo.ts
 or
 
 ```sh
-npx tscw *.ts  # match ./foo.ts, ./bar.ts ...
+npx tscw *.ts # match ./foo.ts, ./bar.ts ...
 ```
 
 or
 
 ```sh
-npx tscw **/*.ts  # match ./foo/baz.ts, ./bar/foo.ts ...
+npx tscw **/*.ts # match ./foo/baz.ts, ./bar/foo.ts ...
 ```
 
 > [!NOTE]

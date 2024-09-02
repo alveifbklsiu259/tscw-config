@@ -68,3 +68,15 @@ export const isRunning = (pid: number) => {
 		return false;
 	}
 };
+
+export const toArray = (strings: TemplateStringsArray, ...values: unknown[]) => {
+	const str = strings.reduce(
+		(acc, curr, i) =>
+			acc +
+			curr +
+			(typeof values[i] === "string" || (typeof values[i] === "number" && !isNaN(values[i])) ? values[i] : ""),
+		"",
+	);
+	const arr = str.split(" ").filter(e => e !== "");
+	return arr;
+};

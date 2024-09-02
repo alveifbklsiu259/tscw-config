@@ -75,7 +75,7 @@ describe("CLI", () => {
 		} as ParsedPath);
 		jest.spyOn(process, "cwd").mockReturnValue(__dirname);
 		// Seems like that spawnSync spawns a new process that doesn’t inherit the mocked environment from the Jest, so main is used here.
-		const child = main([getFixtureFile("success1.ts"), "--noEmit"]);
+		const child = main`${getFixtureFile("success1.ts")} --noEmit"`;
 		expect(child.status).toBe(1);
 		expect(child.stderr).toBe(
 			"Error: Missing package.json file.\nPlease ensure that your project directory contains a package.json file to manage dependencies and configurations.",

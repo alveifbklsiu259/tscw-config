@@ -124,6 +124,7 @@ export default tseslint.config(
 					ignoreRestSiblings: true,
 				},
 			],
+			"@typescript-eslint/triple-slash-reference": "off",
 			"@typescript-eslint/no-non-null-assertion": "off",
 			"@typescript-eslint/no-misused-promises": "off",
 			"@typescript-eslint/restrict-plus-operands": "off",
