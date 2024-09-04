@@ -1,7 +1,16 @@
 import { SpawnSyncReturns, spawn } from "child_process";
 import fs from "fs";
 import path from "path";
-import { fileExists, getRootDirForCurrentWorkSpace, getNearestTsconfig, spawnProcessSync, toArray } from "./lib/util";
+import {
+	fileExists,
+	getRootDirForCurrentWorkSpace,
+	getNearestTsconfig,
+	spawnProcessSync,
+	toArray,
+	type TemplateExpression,
+	processArgs,
+	processJsonData,
+} from "./lib/util";
 
 type SpawnSyncReturnsLike =
 	| SpawnSyncReturns<Buffer>
@@ -11,14 +20,13 @@ type SpawnSyncReturnsLike =
 			stdout: null;
 	  };
 
-function main(strings: TemplateStringsArray, ...values: unknown[]): SpawnSyncReturnsLike;
+function main(strings: TemplateStringsArray, ...values: TemplateExpression): SpawnSyncReturnsLike;
 function main(strings: string[], ...values: never[]): SpawnSyncReturnsLike;
-function main(strings: TemplateStringsArray | string[], ...values: unknown[] | never[]): SpawnSyncReturnsLike {
+function main(strings: TemplateStringsArray | string[], ...values: TemplateExpression | never[]): SpawnSyncReturnsLike {
 	let args: string[];
 
 	if (Array.isArray(strings) && "raw" in strings) {
-		// Handle TemplateStringsArray
-		args = toArray(strings as TemplateStringsArray, values as unknown[]);
+		args = toArray(strings as TemplateStringsArray, ...(values as TemplateExpression));
 	} else {
 		args = strings as string[];
 	}
@@ -33,56 +41,18 @@ function main(strings: TemplateStringsArray | string[], ...values: unknown[] | n
 		};
 	}
 
-	let indexOfProjectFlag = -1;
-	const remainingCliOptions: string[] = [];
-	const files: string[] = [];
+	const isPnp = fileExists(path.join(rootDirForCurrentWorkSpace, ".pnp.cjs")) || !!process.versions.pnp;
 
-	let skipNext = false;
+	const { indexOfProjectFlag, remainingCliOptions, files, error } = processArgs(args);
 
-	for (const [idx, arg] of args.entries()) {
-		if (skipNext) {
-			skipNext = false;
-			continue;
-		}
-
-		if (arg.toLowerCase() === "-p" || arg.toLowerCase() === "--project") {
-			indexOfProjectFlag = idx;
-			const tsconfigArg = args[idx + 1];
-			if (!tsconfigArg) {
-				return {
-					status: 1,
-					stderr: `Missing argument for ${arg}`,
-					stdout: null,
-				};
-			}
-			skipNext = true;
-		} else if (arg.toLowerCase() === "--excludefiles") {
-			remainingCliOptions.push(arg);
-
-			const excludeFilesArg = args[idx + 1];
-			if (!excludeFilesArg) {
-				return {
-					status: 1,
-					stderr: `Missing argument for ${arg}`,
-					stdout: null,
-				};
-			}
-
-			remainingCliOptions.push(args[idx + 1]);
-			skipNext = true;
-		} else if (/^-.*/.test(arg)) {
-			remainingCliOptions.push(arg);
-		} else if (/\.(m|c)?(t|j)sx?$/.test(arg)) {
-			files.push(arg);
-		} else {
-			remainingCliOptions.push(arg);
-		}
+	if (error) {
+		return error;
 	}
 
 	let child: SpawnSyncReturns<Buffer>;
 
 	if (files.length === 0) {
-		child = spawnProcessSync(args, rootDirForCurrentWorkSpace);
+		child = spawnProcessSync(args, rootDirForCurrentWorkSpace, isPnp);
 		return child;
 	}
 
@@ -128,27 +98,14 @@ function main(strings: TemplateStringsArray | string[], ...values: unknown[] | n
 			});
 		}
 
-		let rawData = fs.readFileSync(tsconfig, "utf-8");
+		const rawData = fs.readFileSync(tsconfig, "utf-8");
 
-		// Remove single-line comments
-		rawData = rawData.replace(/\/\/.*$/gm, "");
-
-		// Remove multi-line comments but respect "/**/*" and "/**/." which are used as globs.
-		rawData = rawData.replace(/\/\*[\s\S]*?\*\/(?!\*|\.)/g, "");
-
-		// Remove trailing comma
-		rawData = rawData.replace(/,\s*([\]}])/g, "$1");
-
-		const jsonData = JSON.parse(rawData) as Record<string, unknown>;
-
-		// Overwrite "files" field
-		jsonData.files = files.map(file =>
+		const relativeFiles = files.map(file =>
 			// allow user to run the binary regardless of the current working directory
 			path.relative(path.dirname(tmpTsconfig), file),
 		);
 
-		// Remove "include" field
-		delete jsonData.include;
+		const jsonData = processJsonData(rawData, relativeFiles);
 
 		// https://nodejs.org/api/process.html#signal-events
 		// On Windows, when a process is terminated by `process.kill` or `subProcess.kill`, signal will not be caught.
@@ -171,7 +128,7 @@ function main(strings: TemplateStringsArray | string[], ...values: unknown[] | n
 
 		fs.writeFileSync(tmpTsconfig, JSON.stringify(jsonData, null, 2));
 
-		child = spawnProcessSync(["-p", tmpTsconfig, ...remainingCliOptions], rootDirForCurrentWorkSpace);
+		child = spawnProcessSync(["-p", tmpTsconfig, ...remainingCliOptions], rootDirForCurrentWorkSpace, isPnp);
 		return child;
 	}
 

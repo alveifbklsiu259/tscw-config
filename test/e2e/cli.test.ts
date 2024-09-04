@@ -93,6 +93,7 @@ describe("CLI", () => {
 		process.chdir(path.join(__dirname, "../fixtures"));
 
 		const child = cliSync`--noEmit`;
+
 		expect(child.status).toBe(2);
 		expect(child.stdout.toString()).toMatch("'string' is not assignable to type 'number'");
 		expect(isRunning(child.pid)).toBe(false);
@@ -118,7 +119,6 @@ describe("CLI", () => {
 	});
 	it("should properly remove temp file if process is terminated", async () => {
 		const tsconfigDir = path.dirname(getFixtureFile("tsconfig.json"));
-
 		const fileCountBeforeProcess = readdirSync(tsconfigDir).length;
 
 		const child = spawn(
@@ -144,7 +144,6 @@ describe("CLI", () => {
 						// new file created
 						try {
 							const childPidTree = await pidTree(child.pid!);
-
 							for (const childProcess of childPidTree) {
 								process.kill(childProcess);
 							}
@@ -166,9 +165,7 @@ describe("CLI", () => {
 		});
 
 		await delay(2000);
-
 		const fileCountAfterProcess = readdirSync(tsconfigDir).length;
-
 		expect(fileCountAfterProcess).toEqual(fileCountBeforeProcess);
 	});
 });

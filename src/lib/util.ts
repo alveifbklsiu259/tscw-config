@@ -18,6 +18,60 @@ export const getRootDirForCurrentWorkSpace = () => {
 	return null;
 };
 
+export const processArgs = (args: string[]) => {
+	let indexOfProjectFlag = -1;
+	const remainingCliOptions: string[] = [];
+	const files: string[] = [];
+
+	let skipNext = false;
+
+	for (const [idx, arg] of args.entries()) {
+		if (skipNext) {
+			skipNext = false;
+			continue;
+		}
+
+		if (arg.toLowerCase() === "-p" || arg.toLowerCase() === "--project") {
+			indexOfProjectFlag = idx;
+			const tsconfigArg = args[idx + 1];
+			if (!tsconfigArg) {
+				return {
+					error: {
+						status: 1,
+						stderr: `Missing argument for ${arg}`,
+						stdout: null,
+					},
+				};
+			}
+			skipNext = true;
+		} else if (arg.toLowerCase() === "--excludefiles") {
+			remainingCliOptions.push(arg);
+
+			const excludeFilesArg = args[idx + 1];
+			if (!excludeFilesArg) {
+				return {
+					error: {
+						status: 1,
+						stderr: `Missing argument for ${arg}`,
+						stdout: null,
+					},
+				};
+			}
+
+			remainingCliOptions.push(args[idx + 1]);
+			skipNext = true;
+		} else if (/^-.*/.test(arg)) {
+			remainingCliOptions.push(arg);
+		} else if (/\.(m|c)?(t|j)sx?$/.test(arg)) {
+			files.push(arg);
+		} else {
+			remainingCliOptions.push(arg);
+		}
+	}
+
+	return { indexOfProjectFlag, remainingCliOptions, files, error: null };
+};
+
 export const getNearestTsconfig = (rootDirForCurrentWorkSpace: string) => {
 	let dir = process.cwd();
 
@@ -36,25 +90,49 @@ export const getNearestTsconfig = (rootDirForCurrentWorkSpace: string) => {
 	return null;
 };
 
-export const spawnProcessSync = (args: string[], rootDirForCurrentWorkSpace: string) => {
-	const child = spawnSync(
-		process.versions.pnp
-			? "tsc"
-			: path.join(
+export const spawnProcessSync = (args: string[], rootDirForCurrentWorkSpace: string, isPnp: boolean) => {
+	const child = isPnp
+		? spawnSync(`yarn tsc ${args.join(" ")}`, {
+				stdio: "inherit",
+				shell: true,
+			})
+		: spawnSync(
+				path.join(
 					rootDirForCurrentWorkSpace,
 					`/node_modules/.bin/tsc${
 						// Windows is case-insensitive about file extension.
 						process.platform === "win32" ? ".cmd" : ""
 					}`,
 				),
-		args,
-		{ stdio: "inherit" },
-	);
+				args,
+				{ stdio: "inherit" },
+			);
 	if (child.error) {
 		console.error(child.error);
 		exit(1);
 	}
 	return child;
+};
+
+export const processJsonData = (rawData: string, files: string[]) => {
+	// Remove single-line comments
+	rawData = rawData.replace(/\/\/.*$/gm, "");
+
+	// Remove multi-line comments but respect "/**/*" and "/**/." which are used as globs.
+	rawData = rawData.replace(/\/\*[\s\S]*?\*\/(?!\*|\.)/g, "");
+
+	// Remove trailing comma
+	rawData = rawData.replace(/,\s*([\]}])/g, "$1");
+
+	const jsonData = JSON.parse(rawData) as Record<string, unknown>;
+
+	// Overwrite "files" field
+	jsonData.files = files;
+
+	// Remove "include" field
+	delete jsonData.include;
+
+	return jsonData;
 };
 
 export const isRunning = (pid: number) => {
@@ -69,7 +147,9 @@ export const isRunning = (pid: number) => {
 	}
 };
 
-export const toArray = (strings: TemplateStringsArray, ...values: unknown[]) => {
+export type TemplateExpression = (string | number)[];
+
+export const toArray = (strings: TemplateStringsArray, ...values: TemplateExpression) => {
 	const str = strings.reduce(
 		(acc, curr, i) =>
 			acc +

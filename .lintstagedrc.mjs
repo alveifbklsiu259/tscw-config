@@ -18,6 +18,9 @@ const cspell = `cspell --no-progress --show-context ${cacheOptions("metadata", "
  * Don't cache the result of eslint.
  * @see{@link https://typescript-eslint.io/troubleshooting/faqs/eslint#can-i-use-eslints---cache-with-typescript-eslint}
  */
+
+const jest = "jest --findRelatedTests --passWithNoTests --coverage";
+
 const eslint = `eslint --report-unused-disable-directives --fix`;
 const prettier = `prettier --ignore-unknown --write ${cacheOptions("metadata", ".prettiercache")}`;
 const markdownlint = `markdownlint --fix`;

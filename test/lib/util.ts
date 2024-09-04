@@ -1,6 +1,6 @@
 import { spawnSync } from "child_process";
 import path from "path";
-import { toArray } from "../../src/lib/util";
+import { toArray, type TemplateExpression } from "../../src/lib/util";
 
 export const delay = (ms: number) =>
 	new Promise(res =>
@@ -11,7 +11,7 @@ export const delay = (ms: number) =>
 
 export const getFixtureFile = (file: string) => path.join(__dirname, "../fixtures", file);
 
-export const cliSync = (strings: TemplateStringsArray, ...values: unknown[]) => {
+export const cliSync = (strings: TemplateStringsArray, ...values: TemplateExpression) => {
 	const cliOptionsArr = toArray(strings, ...values);
 	return spawnSync("node", [path.join(__dirname, "../../dist/cli.js"), ...cliOptionsArr], {
 		stdio: "pipe",
