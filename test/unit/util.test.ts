@@ -1,6 +1,6 @@
 import { expect, jest, it, afterEach, beforeEach, describe, test } from "@jest/globals";
 import childProcess, { SpawnSyncReturns } from "node:child_process";
-import { readFileSync } from "node:fs";
+import fs, { readFileSync } from "node:fs";
 import path, { type ParsedPath } from "node:path";
 import {
 	fileExists,
@@ -10,7 +10,9 @@ import {
 	isRunning,
 	processArgs,
 	processJsonData,
+	registerCleanup,
 } from "../../src/lib/util";
+import * as utils from "../../src/lib/util";
 import { toArray } from "../../src/lib/util";
 import "../lib/toBeWithinRange";
 import { delay, getFixtureFile, cliSync } from "../lib/util";
@@ -93,6 +95,7 @@ describe("processArgs", () => {
 
 		expect(result1.indexOfProjectFlag).toBe(undefined);
 		expect(result1.error).toStrictEqual({
+			pid: null,
 			status: 1,
 			stderr: "Missing argument for --project",
 			stdout: null,
@@ -104,6 +107,7 @@ describe("processArgs", () => {
 
 		expect(result2.indexOfProjectFlag).toBe(undefined);
 		expect(result2.error).toStrictEqual({
+			pid: null,
 			status: 1,
 			stderr: "Missing argument for -p",
 			stdout: null,
@@ -125,6 +129,7 @@ describe("processArgs", () => {
 		const result1 = processArgs(args1);
 
 		expect(result1.error).toStrictEqual({
+			pid: null,
 			status: 1,
 			stderr: "Missing argument for --excludeFiles",
 			stdout: null,
@@ -200,7 +205,7 @@ describe("spawnProcessSync", () => {
 
 			if (isPnp) {
 				expect(childProcess.spawnSync).toHaveBeenCalledWith(`yarn tsc ${args.join(" ")}`, {
-					stdio: "inherit",
+					stdio: "pipe",
 					shell: true,
 				});
 			} else {
@@ -208,7 +213,7 @@ describe("spawnProcessSync", () => {
 					path.join(rootDir, `/node_modules/.bin/tsc${platform === "Windows" ? ".cmd" : ""}`),
 					args,
 					{
-						stdio: "inherit",
+						stdio: "pipe",
 					},
 				);
 			}
@@ -434,4 +439,29 @@ describe("cliSync", () => {
 			{ stdio: "pipe" },
 		);
 	});
+});
+
+describe("registerCleanup", () => {
+	const testCases = [{ signal: "SIGINT" }, { signal: "SIGHUP" }, { signal: "SIGTERM" }, { signal: "exit" }] as const;
+
+	test.each(testCases)(
+		"should delete the temp file if it exits when the signal is received - $signal",
+		({ signal }) => {
+			jest.spyOn(utils, "fileExists").mockReturnValue(true);
+			const mockedUnlinkSync = jest.spyOn(fs, "unlinkSync").mockImplementation(() => {
+				/*  */
+			});
+			const tmpTsconfig = "tmp-tsconfig-abcdef123456.json";
+
+			registerCleanup(process, tmpTsconfig);
+
+			if (signal === "exit") {
+				process.emit(signal, 0);
+			} else {
+				process.emit(signal);
+			}
+
+			expect(mockedUnlinkSync).toHaveBeenCalled();
+		},
+	);
 });

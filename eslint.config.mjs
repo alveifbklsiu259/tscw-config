@@ -37,6 +37,7 @@ export default tseslint.config(
 			globals: {
 				...globals.browser,
 				...globals.node,
+				NodeJS: true,
 			},
 			parserOptions: {
 				project: "./tsconfig.json",

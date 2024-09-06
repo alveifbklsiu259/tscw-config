@@ -19,11 +19,11 @@ const cspell = `cspell --no-progress --show-context ${cacheOptions("metadata", "
  * @see{@link https://typescript-eslint.io/troubleshooting/faqs/eslint#can-i-use-eslints---cache-with-typescript-eslint}
  */
 
-const jest = "jest --findRelatedTests --passWithNoTests --coverage";
-
 const eslint = `eslint --report-unused-disable-directives --fix`;
 const prettier = `prettier --ignore-unknown --write ${cacheOptions("metadata", ".prettiercache")}`;
 const markdownlint = `markdownlint --fix`;
+
+const jest = "jest --findRelatedTests --passWithNoTests --coverage";
 
 /**
  * Passing absolute path is fine, but relative path is cleaner in console.
@@ -38,6 +38,7 @@ const typeCheck = files => {
 export default {
 	"*": [cspell],
 	"**/*.{ts,mts,cts,tsx}": [prettier, typeCheck, eslint],
+	"./src/*.{ts,mts,cts,tsx}": [jest],
 	"**/*.{js,mjs,cjs,jsx,json}": [prettier, eslint],
 	"**/*.md": [prettier, markdownlint, eslint],
 };

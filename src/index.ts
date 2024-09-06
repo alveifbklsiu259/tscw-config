@@ -10,11 +10,13 @@ import {
 	type TemplateExpression,
 	processArgs,
 	processJsonData,
+	registerCleanup,
 } from "./lib/util";
 
 type SpawnSyncReturnsLike =
 	| SpawnSyncReturns<Buffer>
 	| {
+			pid: null;
 			status: number;
 			stderr: string;
 			stdout: null;
@@ -35,6 +37,7 @@ function main(strings: TemplateStringsArray | string[], ...values: TemplateExpre
 
 	if (!rootDirForCurrentWorkSpace) {
 		return {
+			pid: null,
 			status: 1,
 			stderr: "Error: Missing package.json file.\nPlease ensure that your project directory contains a package.json file to manage dependencies and configurations.",
 			stdout: null,
@@ -52,7 +55,7 @@ function main(strings: TemplateStringsArray | string[], ...values: TemplateExpre
 	let child: SpawnSyncReturns<Buffer>;
 
 	if (files.length === 0) {
-		child = spawnProcessSync(args, rootDirForCurrentWorkSpace, isPnp);
+		child = spawnProcessSync(["--pretty", ...args], rootDirForCurrentWorkSpace, isPnp);
 		return child;
 	}
 
@@ -68,35 +71,7 @@ function main(strings: TemplateStringsArray | string[], ...values: TemplateExpre
 		);
 
 		// Attach cleanup handlers
-		let didCleanup = false;
-		for (const signal of ["exit", "SIGHUP", "SIGINT", "SIGTERM"] as const) {
-			process.on(signal, () => {
-				if (!didCleanup) {
-					didCleanup = true;
-					fs.unlinkSync(tmpTsconfig);
-				}
-
-				if (signal !== "exit") {
-					let exitCode: number;
-					switch (signal) {
-						case "SIGHUP":
-							exitCode = 129;
-							break;
-						case "SIGINT":
-							exitCode = 130;
-							break;
-						case "SIGTERM":
-							exitCode = 143;
-							break;
-					}
-					return {
-						status: exitCode,
-						stderr: `Received signal: ${signal}`,
-						stdout: null,
-					};
-				}
-			});
-		}
+		registerCleanup(process, tmpTsconfig);
 
 		const rawData = fs.readFileSync(tsconfig, "utf-8");
 
@@ -114,7 +89,7 @@ function main(strings: TemplateStringsArray | string[], ...values: TemplateExpre
 			const intermediate = spawn(
 				process.argv[0],
 				[
-					path.relative(process.cwd(), path.join(__dirname, "intermediate.js")),
+					path.relative(process.cwd(), path.join(__dirname, "../dist/intermediate.js")),
 					process.pid.toString(),
 					tmpTsconfig,
 				],
@@ -128,17 +103,23 @@ function main(strings: TemplateStringsArray | string[], ...values: TemplateExpre
 
 		fs.writeFileSync(tmpTsconfig, JSON.stringify(jsonData, null, 2));
 
-		child = spawnProcessSync(["-p", tmpTsconfig, ...remainingCliOptions], rootDirForCurrentWorkSpace, isPnp);
+		child = spawnProcessSync(
+			["--pretty", "-p", tmpTsconfig, ...remainingCliOptions],
+			rootDirForCurrentWorkSpace,
+			isPnp,
+		);
+		if (fileExists(tmpTsconfig)) {
+			fs.unlinkSync(tmpTsconfig);
+		}
 		return child;
 	}
 
 	return {
+		pid: null,
 		status: 1,
 		stderr: tsconfig
 			? `Can't find ${tsconfig}`
-			: indexOfProjectFlag === -1
-				? "Can't find tsconfig.json"
-				: `Missing argument for ${args[indexOfProjectFlag]}`,
+			: "Can't find tsconfig.json from the current working directory or level(s) up.",
 		stdout: null,
 	};
 }

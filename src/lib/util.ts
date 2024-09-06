@@ -37,6 +37,7 @@ export const processArgs = (args: string[]) => {
 			if (!tsconfigArg) {
 				return {
 					error: {
+						pid: null,
 						status: 1,
 						stderr: `Missing argument for ${arg}`,
 						stdout: null,
@@ -51,6 +52,7 @@ export const processArgs = (args: string[]) => {
 			if (!excludeFilesArg) {
 				return {
 					error: {
+						pid: null,
 						status: 1,
 						stderr: `Missing argument for ${arg}`,
 						stdout: null,
@@ -93,7 +95,7 @@ export const getNearestTsconfig = (rootDirForCurrentWorkSpace: string) => {
 export const spawnProcessSync = (args: string[], rootDirForCurrentWorkSpace: string, isPnp: boolean) => {
 	const child = isPnp
 		? spawnSync(`yarn tsc ${args.join(" ")}`, {
-				stdio: "inherit",
+				stdio: "pipe",
 				shell: true,
 			})
 		: spawnSync(
@@ -105,7 +107,7 @@ export const spawnProcessSync = (args: string[], rootDirForCurrentWorkSpace: str
 					}`,
 				),
 				args,
-				{ stdio: "inherit" },
+				{ stdio: "pipe" },
 			);
 	if (child.error) {
 		console.error(child.error);
@@ -159,4 +161,35 @@ export const toArray = (strings: TemplateStringsArray, ...values: TemplateExpres
 	);
 	const arr = str.split(" ").filter(e => e !== "");
 	return arr;
+};
+
+export const registerCleanup = (process: NodeJS.Process, tmpTsconfig: string) => {
+	for (const signal of ["exit", "SIGHUP", "SIGINT", "SIGTERM"] as const) {
+		process.on(signal, () => {
+			if (fileExists(tmpTsconfig)) {
+				fs.unlinkSync(tmpTsconfig);
+			}
+
+			if (signal !== "exit") {
+				let exitCode: number;
+				switch (signal) {
+					case "SIGHUP":
+						exitCode = 129;
+						break;
+					case "SIGINT":
+						exitCode = 130;
+						break;
+					case "SIGTERM":
+						exitCode = 143;
+						break;
+				}
+				return {
+					pid: null,
+					status: exitCode,
+					stderr: `Received signal: ${signal}`,
+					stdout: null,
+				};
+			}
+		});
+	}
 };

@@ -6,8 +6,10 @@ const args = process.argv.slice(2);
 
 const child = main(args);
 
-if (child.status !== 0 && child.stderr) {
-	console.error(child.stderr);
+if (child.stdout?.toString()) {
+	console.log(child.stdout.toString());
+} else {
+	console.log(child.stderr.toString());
 }
 
 exit(child.status);

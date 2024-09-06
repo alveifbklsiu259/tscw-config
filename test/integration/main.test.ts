@@ -3,13 +3,21 @@ import { type SpawnSyncReturns } from "child_process";
 import main from "../../src";
 import * as utils from "../../src/lib/util";
 
+const originalPlatform = process.platform;
+
 afterEach(() => {
 	jest.restoreAllMocks();
+	Object.defineProperties(process, {
+		platform: {
+			value: originalPlatform,
+		},
+	});
 });
 
 describe("CLI integration", () => {
 	it("should return error when processArg returns an error", () => {
 		const error = {
+			pid: null,
 			status: 1,
 			stderr: `Missing argument for -p`,
 			stdout: null,

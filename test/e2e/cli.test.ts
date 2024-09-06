@@ -29,6 +29,7 @@ describe("CLI", () => {
 		expect(child.status).toBe(0);
 		expect(isRunning(child.pid)).toBe(false);
 	});
+
 	it("should return non-zero status code when type-checking fails", () => {
 		const child = cliSync`${getFixtureFile("fail1.ts")} --noEmit`;
 
@@ -36,6 +37,7 @@ describe("CLI", () => {
 		expect(isRunning(child.pid)).toBe(false);
 		expect(child.stdout.toString()).toMatch("'string' is not assignable to type 'number'");
 	});
+
 	test.each(testCasesTs)("should work if tsconfig is specified - $file", ({ file, statusCode }) => {
 		const child = cliSync`${getFixtureFile(file)} -p ${getFixtureFile("tsconfig.json")} --noEmit `;
 
@@ -45,6 +47,7 @@ describe("CLI", () => {
 		}
 		expect(isRunning(child.pid)).toBe(false);
 	});
+
 	test.each(testCasesJs)(
 		"should work if the same flag is specified multiple times - $file",
 		({ file, statusCode }) => {
@@ -58,6 +61,7 @@ describe("CLI", () => {
 			expect(isRunning(child.pid)).toBe(false);
 		},
 	);
+
 	test.each(testCasesJs)(
 		"should override the tsconfig behavior by passing in CLI options - $file",
 		({ file, statusCode }) => {
@@ -69,6 +73,7 @@ describe("CLI", () => {
 			expect(isRunning(child.pid)).toBe(false);
 		},
 	);
+
 	it("should return 1 as status code if this project does not contain a package.json file", () => {
 		jest.spyOn(path, "parse").mockReturnValue({
 			root: path.join(__dirname, ".."),
@@ -81,14 +86,16 @@ describe("CLI", () => {
 			"Error: Missing package.json file.\nPlease ensure that your project directory contains a package.json file to manage dependencies and configurations.",
 		);
 	});
+
 	it("should return 1 as status code if tsconfig is not found in this project", () => {
 		jest.spyOn(utils, "getNearestTsconfig").mockReturnValue(null);
 		// Seems like that spawnSync spawns a new process that doesn’t inherit the mocked environment from the Jest, so main is used here.
 		const child = main([getFixtureFile("success1.ts"), "--noEmit"]);
 
 		expect(child.status).toBe(1);
-		expect(child.stderr).toBe("Can't find tsconfig.json");
+		expect(child.stderr).toBe("Can't find tsconfig.json from the current working directory or level(s) up.");
 	});
+
 	it("should work if no files specified", () => {
 		process.chdir(path.join(__dirname, "../fixtures"));
 
@@ -98,6 +105,7 @@ describe("CLI", () => {
 		expect(child.stdout.toString()).toMatch("'string' is not assignable to type 'number'");
 		expect(isRunning(child.pid)).toBe(false);
 	});
+
 	test.each(testCasesTs)("should work if excludeFiles flag is used - $file", ({ file, statusCode }) => {
 		// --excludeFiles: Remove a list of files from the watch mode's processing.
 		const child = cliSync`${getFixtureFile(file)} -p ${getFixtureFile(
@@ -110,14 +118,18 @@ describe("CLI", () => {
 		}
 		expect(isRunning(child.pid)).toBe(false);
 	});
-	test.each(testCasesTs)("should properly remove temp file - $file", ({ file }) => {
+
+	test.each(testCasesTs)("should remove temp file - $file", ({ file }) => {
 		const fileCountBeforeProcess = readdirSync(path.join(__dirname, "../fixtures")).length;
 		const child = cliSync`${getFixtureFile(file)} -p ${getFixtureFile("tsconfig.json")} --noEmit`;
+
 		const fileCountAfterProcess = readdirSync(path.join(__dirname, "../fixtures")).length;
+
 		expect(fileCountBeforeProcess).toEqual(fileCountAfterProcess);
 		expect(isRunning(child.pid)).toBe(false);
 	});
-	it("should properly remove temp file if process is terminated", async () => {
+
+	it("should remove temp file if process is terminated", async () => {
 		const tsconfigDir = path.dirname(getFixtureFile("tsconfig.json"));
 		const fileCountBeforeProcess = readdirSync(tsconfigDir).length;
 

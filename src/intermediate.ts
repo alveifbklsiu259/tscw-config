@@ -7,7 +7,7 @@ const tmpTsconfig = process.argv[3];
 
 const sub = spawn(
 	process.argv[0],
-	[path.relative(process.cwd(), path.join(__dirname, "cleanupMonitor.js")), parentPid, tmpTsconfig],
+	[path.relative(process.cwd(), path.join(__dirname, "../dist/cleanupMonitor.js")), parentPid, tmpTsconfig],
 	{
 		detached: true,
 		stdio: "ignore",
