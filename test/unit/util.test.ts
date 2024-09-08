@@ -1,21 +1,22 @@
-import { expect, jest, it, afterEach, beforeEach, describe, test } from "@jest/globals";
-import childProcess, { SpawnSyncReturns } from "node:child_process";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, jest, test } from "@jest/globals";
+import childProcess from "node:child_process";
 import fs, { readFileSync } from "node:fs";
 import path, { type ParsedPath } from "node:path";
+import { EventEmitter } from "node:stream";
 import {
 	fileExists,
-	getRootDirForCurrentWorkSpace,
 	getNearestTsconfig,
-	spawnProcessSync,
+	getRootDirForCurrentWorkSpace,
 	isRunning,
 	processArgs,
 	processJsonData,
 	registerCleanup,
+	runTsc,
+	toArray,
 } from "../../src/lib/util";
 import * as utils from "../../src/lib/util";
-import { toArray } from "../../src/lib/util";
 import "../lib/toBeWithinRange";
-import { delay, getFixtureFile, cliSync } from "../lib/util";
+import { cliSync, createMockedChild, delay, getFixtureFile } from "../lib/util";
 
 const originalPlatform = process.platform;
 
@@ -29,6 +30,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	jest.restoreAllMocks();
+	jest.resetAllMocks();
 	Object.defineProperties(process, {
 		platform: {
 			value: originalPlatform,
@@ -96,7 +98,7 @@ describe("processArgs", () => {
 		expect(result1.indexOfProjectFlag).toBe(undefined);
 		expect(result1.error).toStrictEqual({
 			pid: null,
-			status: 1,
+			exitCode: 1,
 			stderr: "Missing argument for --project",
 			stdout: null,
 		});
@@ -108,7 +110,7 @@ describe("processArgs", () => {
 		expect(result2.indexOfProjectFlag).toBe(undefined);
 		expect(result2.error).toStrictEqual({
 			pid: null,
-			status: 1,
+			exitCode: 1,
 			stderr: "Missing argument for -p",
 			stdout: null,
 		});
@@ -130,7 +132,7 @@ describe("processArgs", () => {
 
 		expect(result1.error).toStrictEqual({
 			pid: null,
-			status: 1,
+			exitCode: 1,
 			stderr: "Missing argument for --excludeFiles",
 			stdout: null,
 		});
@@ -170,7 +172,7 @@ describe("getNearestTsconfig", () => {
 	});
 });
 
-describe("spawnProcessSync", () => {
+describe("runTsc", () => {
 	const testCases = [
 		{ platform: "non-Windows", isPnp: true },
 		{ platform: "non-Windows", isPnp: false },
@@ -180,11 +182,10 @@ describe("spawnProcessSync", () => {
 
 	test.each(testCases)(
 		"should spawn a process with the right args and return the child process - $platform / YarnPnp: $isPnp",
-		({ platform, isPnp }) => {
-			jest.spyOn(childProcess, "spawnSync").mockReturnValue({
-				pid: 42,
-				status: 0,
-			} as SpawnSyncReturns<string>);
+		async ({ platform, isPnp }) => {
+			const mockedChild = createMockedChild();
+
+			jest.spyOn(childProcess, "spawn").mockReturnValue(mockedChild);
 
 			const rootDir = path.join(__dirname, "../..");
 
@@ -198,18 +199,29 @@ describe("spawnProcessSync", () => {
 				});
 			}
 
-			const child1 = spawnProcessSync(args, rootDir, isPnp);
+			const child = runTsc(args, rootDir, isPnp);
 
-			expect(child1.status).toBe(0);
-			expect(childProcess.spawnSync).toHaveBeenCalledTimes(1);
+			mockedChild.stderr.emit("data", "mock stderr");
+			mockedChild.stdout.emit("data", "mock stdout");
+
+			mockedChild.emit("exit", 0);
+
+			const { stderr, stdout, exitCode } = await child;
+
+			expect.assertions(5);
+
+			expect(exitCode).toBe(0);
+			expect(childProcess.spawn).toHaveBeenCalledTimes(1);
+			expect(stderr).toBe("mock stderr");
+			expect(stdout).toBe("mock stdout");
 
 			if (isPnp) {
-				expect(childProcess.spawnSync).toHaveBeenCalledWith(`yarn tsc ${args.join(" ")}`, {
+				expect(childProcess.spawn).toHaveBeenCalledWith(`yarn tsc ${args.join(" ")}`, {
 					stdio: "pipe",
 					shell: true,
 				});
 			} else {
-				expect(childProcess.spawnSync).toHaveBeenCalledWith(
+				expect(childProcess.spawn).toHaveBeenCalledWith(
 					path.join(rootDir, `/node_modules/.bin/tsc${platform === "Windows" ? ".cmd" : ""}`),
 					args,
 					{
@@ -220,30 +232,26 @@ describe("spawnProcessSync", () => {
 		},
 	);
 
-	it("should log the error and exit with 1 when fails to spawn a process", () => {
-		const error = new Error("mock error");
+	it("should reject with the error when fails to spawn a process", async () => {
+		const mockedChild = createMockedChild();
 
-		jest.spyOn(childProcess, "spawnSync").mockReturnValue({
-			error,
-		} as SpawnSyncReturns<string>);
-		const mockedConsoleError = jest.spyOn(console, "error").mockImplementation(() => {
-			/*  */
-		});
-		// @ts-expect-error Type 'void' is not assignable to type 'never'.
-		const mockedExit = jest.spyOn(process, "exit").mockImplementation(() => {
-			/*  */
-		});
+		jest.spyOn(childProcess, "spawn").mockReturnValue(mockedChild);
+
 		const rootDir = path.join(__dirname, "../..");
 
 		const args = ["../fixtures/success1.ts"];
 
-		const _child = spawnProcessSync(args, rootDir, false);
+		const child = runTsc(args, rootDir, false);
+		const error = { errno: -4058, code: "ENOENT" };
 
-		expect(mockedConsoleError).toHaveBeenCalledTimes(1);
-		expect(mockedConsoleError).toHaveBeenCalledWith(error);
+		mockedChild.emit("error", error);
 
-		expect(mockedExit).toHaveBeenCalledTimes(1);
-		expect(mockedExit).toHaveBeenCalledWith(1);
+		expect.assertions(1);
+		try {
+			await child;
+		} catch (e) {
+			expect(e).toStrictEqual(error);
+		}
 	});
 });
 
@@ -442,26 +450,48 @@ describe("cliSync", () => {
 });
 
 describe("registerCleanup", () => {
-	const testCases = [{ signal: "SIGINT" }, { signal: "SIGHUP" }, { signal: "SIGTERM" }, { signal: "exit" }] as const;
+	const testCases = [
+		{ signal: "SIGINT", exitCode: 130 },
+		{ signal: "SIGHUP", exitCode: 129 },
+		{ signal: "SIGTERM", exitCode: 143 },
+		{ signal: "exit", exitCode: 0 },
+	] as const;
+
+	beforeAll(() => {
+		const tmpTsconfig = "tmp-tsconfig-abcdef123456.json";
+
+		registerCleanup(process, tmpTsconfig);
+	});
 
 	test.each(testCases)(
 		"should delete the temp file if it exits when the signal is received - $signal",
-		({ signal }) => {
+		({ signal, exitCode }) => {
 			jest.spyOn(utils, "fileExists").mockReturnValue(true);
-			const mockedUnlinkSync = jest.spyOn(fs, "unlinkSync").mockImplementation(() => {
-				/*  */
-			});
-			const tmpTsconfig = "tmp-tsconfig-abcdef123456.json";
-
-			registerCleanup(process, tmpTsconfig);
+			const mockedUnlinkSync = jest.spyOn(fs, "unlinkSync").mockImplementation(() => {});
+			// @ts-expect-error Type 'void' is not assignable to type 'never'.
+			const mockedExit = jest.spyOn(process, "exit").mockImplementation(() => {});
+			jest.spyOn(console, "log").mockImplementation(() => {});
 
 			if (signal === "exit") {
 				process.emit(signal, 0);
 			} else {
 				process.emit(signal);
+				expect(mockedExit).toHaveBeenCalledTimes(1);
+				expect(mockedExit).toHaveBeenCalledWith(exitCode);
 			}
 
-			expect(mockedUnlinkSync).toHaveBeenCalled();
+			expect(mockedUnlinkSync).toHaveBeenCalledTimes(1);
 		},
 	);
+});
+
+describe("createMockedChild", () => {
+	it("should create an eventEmitter", () => {
+		const mockedChild = createMockedChild();
+		expect(mockedChild).toBeInstanceOf(EventEmitter);
+		expect(mockedChild).toHaveProperty("stdout");
+		expect(mockedChild).toHaveProperty("stderr");
+		expect(mockedChild.stderr).toBeInstanceOf(EventEmitter);
+		expect(mockedChild.stdout).toBeInstanceOf(EventEmitter);
+	});
 });

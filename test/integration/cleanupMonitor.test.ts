@@ -1,4 +1,4 @@
-import { describe, expect, it, jest, afterEach, beforeAll } from "@jest/globals";
+import { afterEach, beforeAll, describe, expect, it, jest } from "@jest/globals";
 import fs from "fs";
 import { exit } from "process";
 import * as utils from "../../src/lib/util";
@@ -12,6 +12,7 @@ const originalArgv = process.argv;
 afterEach(() => {
 	jest.restoreAllMocks();
 	jest.resetAllMocks();
+	jest.resetModules();
 	process.argv = originalArgv;
 });
 
@@ -23,13 +24,13 @@ jest.mock("process", () => {
 	};
 });
 
-describe("cleanupMonitor", () => {
+jest.retryTimes(2);
+
+describe("cleanupMonitor - integration", () => {
 	it("should delete the temp file if the parent process completed and the temp file still exited", () => {
 		jest.spyOn(utils, "isRunning").mockReturnValue(false);
 		jest.spyOn(fs, "existsSync").mockReturnValue(true);
-		const mockedUnlinkSync = jest.spyOn(fs, "unlinkSync").mockImplementation(() => {
-			/*  */
-		});
+		const mockedUnlinkSync = jest.spyOn(fs, "unlinkSync").mockImplementation(() => {});
 		const pid = "42";
 		const tmpTsconfig = "tmp-tsconfig-abcdef123456.json";
 

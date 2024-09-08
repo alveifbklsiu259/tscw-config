@@ -1,4 +1,4 @@
-import type { Linter, TSESLint, SharedConfig } from "./check_modules";
+import type { Linter, SharedConfig, TSESLint } from "./check_modules";
 import { RuleLevel, Rules } from "./eslintClassicConfig";
 
 type NoIndexKeys<T extends object> = keyof {

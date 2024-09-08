@@ -1,4 +1,4 @@
-import { describe, expect, it, jest, afterEach } from "@jest/globals";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { spawn } from "child_process";
 import path from "path";
 import { exit } from "process";
@@ -24,7 +24,7 @@ jest.mock("process", () => {
 	};
 });
 
-describe("intermediate", () => {
+describe("intermediate - integration", () => {
 	it("should spawn a child process then exit", () => {
 		const pid = "42";
 		const tmpTsconfig = "tmp-tsconfig-abcdef123456.json";

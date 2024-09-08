@@ -92,8 +92,6 @@ export default tseslint.config(
 		...jestPlugin.configs["flat/recommended"],
 		rules: {
 			...jestPlugin.configs["flat/recommended"].rules,
-			"jest/prefer-expect-assertions": "off",
-			"jest/no-conditional-expect": "off",
 		},
 	},
 
@@ -139,6 +137,16 @@ export default tseslint.config(
 			"no-console": "off",
 			"import/no-unresolved": "off",
 			"@typescript-eslint/no-unused-vars": "off",
+		},
+	},
+	{
+		files: ["**/*.test.ts", "**/*.spec.ts"],
+		rules: {
+			"@typescript-eslint/no-empty-function": "off",
+			"@typescript-eslint/unbound-method": "off",
+			"jest/unbound-method": "error",
+			"jest/prefer-expect-assertions": "off",
+			"jest/no-conditional-expect": "off",
 		},
 	},
 );

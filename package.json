@@ -26,7 +26,7 @@
 		"clean": "rimraf dist/ .lint-cache/.tsbuildinfo",
 		"build": "npm run clean && tsc -p tsconfig.build.json",
 		"prepublishOnly": "npm run build",
-		"test": "jest",
+		"test": "jest --verbose",
 		"test:unit": "jest --testPathPattern=test/unit",
 		"test:integration": "jest --testPathPattern=test/integration",
 		"test:e2e": "jest --testPathPattern=test/e2e",
@@ -37,6 +37,7 @@
 		"check-spelling": "cspell . --no-progress --show-context --cache --cache-strategy metadata --cache-location .lint-cache/.cspellcache",
 		"lint-markdown": "markdownlint \"**/*.md\"",
 		"lint": "eslint . --report-unused-disable-directives",
+		"lint-commit": "commitlint --from HEAD~1",
 		"type-check": "node ./dist/cli.js --noEmit -p tsconfig.build.json",
 		"get-eslint-config-types": "bash scripts/get_eslint_config_types.sh",
 		"prepare": "husky"

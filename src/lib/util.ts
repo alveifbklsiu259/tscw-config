@@ -1,7 +1,6 @@
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { exit } from "node:process";
 
 export const fileExists = (...paths: string[]) => fs.existsSync(path.join(...paths));
 
@@ -38,7 +37,7 @@ export const processArgs = (args: string[]) => {
 				return {
 					error: {
 						pid: null,
-						status: 1,
+						exitCode: 1,
 						stderr: `Missing argument for ${arg}`,
 						stdout: null,
 					},
@@ -53,7 +52,7 @@ export const processArgs = (args: string[]) => {
 				return {
 					error: {
 						pid: null,
-						status: 1,
+						exitCode: 1,
 						stderr: `Missing argument for ${arg}`,
 						stdout: null,
 					},
@@ -92,28 +91,60 @@ export const getNearestTsconfig = (rootDirForCurrentWorkSpace: string) => {
 	return null;
 };
 
-export const spawnProcessSync = (args: string[], rootDirForCurrentWorkSpace: string, isPnp: boolean) => {
-	const child = isPnp
-		? spawnSync(`yarn tsc ${args.join(" ")}`, {
-				stdio: "pipe",
-				shell: true,
-			})
-		: spawnSync(
-				path.join(
-					rootDirForCurrentWorkSpace,
-					`/node_modules/.bin/tsc${
-						// Windows is case-insensitive about file extension.
-						process.platform === "win32" ? ".cmd" : ""
-					}`,
-				),
-				args,
-				{ stdio: "pipe" },
-			);
-	if (child.error) {
-		console.error(child.error);
-		exit(1);
-	}
-	return child;
+export interface SpawnResult {
+	pid: number;
+	exitCode: number;
+	stdout: string;
+	stderr: string;
+}
+
+export const runTsc = async (
+	args: string[],
+	rootDirForCurrentWorkSpace: string,
+	isPnp: boolean,
+): Promise<SpawnResult> => {
+	return new Promise((res, rej) => {
+		const child = isPnp
+			? spawn(`yarn tsc ${args.join(" ")}`, {
+					stdio: "pipe",
+					shell: true,
+				})
+			: spawn(
+					path.join(
+						rootDirForCurrentWorkSpace,
+						`/node_modules/.bin/tsc${
+							// Windows is case-insensitive about file extension.
+							process.platform === "win32" ? ".cmd" : ""
+						}`,
+					),
+					args,
+					{ stdio: "pipe" },
+				);
+
+		let stdout = "";
+		let stderr = "";
+
+		child.stdout.on("data", (data: Buffer) => {
+			stdout += data.toString();
+		});
+
+		child.stderr.on("data", (data: Buffer) => {
+			stderr += data.toString();
+		});
+
+		child.on("exit", exitCode => {
+			res({
+				pid: child.pid!,
+				exitCode: exitCode!,
+				stdout,
+				stderr,
+			});
+		});
+
+		child.on("error", e => {
+			rej(e);
+		});
+	});
 };
 
 export const processJsonData = (rawData: string, files: string[]) => {
@@ -183,12 +214,8 @@ export const registerCleanup = (process: NodeJS.Process, tmpTsconfig: string) =>
 						exitCode = 143;
 						break;
 				}
-				return {
-					pid: null,
-					status: exitCode,
-					stderr: `Received signal: ${signal}`,
-					stdout: null,
-				};
+				console.log(`received signal: ${signal}`);
+				process.exit(exitCode);
 			}
 		});
 	}

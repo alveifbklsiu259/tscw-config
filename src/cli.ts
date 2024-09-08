@@ -2,14 +2,21 @@
 import { exit } from "process";
 import main from "./index";
 
-const args = process.argv.slice(2);
+void (async () => {
+	const args = process.argv.slice(2);
 
-const child = main(args);
+	try {
+		const child = await main(args);
 
-if (child.stdout?.toString()) {
-	console.log(child.stdout.toString());
-} else {
-	console.log(child.stderr.toString());
-}
+		if (child.stdout) {
+			console.log(child.stdout);
+		} else {
+			console.log(child.stderr);
+		}
 
-exit(child.status);
+		exit(child.exitCode);
+	} catch (e) {
+		console.error(e);
+		exit(1);
+	}
+})();

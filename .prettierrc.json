@@ -5,6 +5,8 @@
 	"printWidth": 120,
 	"plugins": ["@trivago/prettier-plugin-sort-imports", "prettier-plugin-sh"],
 	"importOrder": ["<THIRD_PARTY_MODULES>", "^[./]"],
+	"importOrderSortSpecifiers": true,
+	"importOrderCaseInsensitive": true,
 	"overrides": [
 		{
 			"files": "*.{sh,md}",

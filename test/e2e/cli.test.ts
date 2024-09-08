@@ -1,12 +1,12 @@
-import { expect, jest, it, test, afterEach, describe } from "@jest/globals";
+import { afterEach, describe, expect, it, jest, test } from "@jest/globals";
 import { spawn } from "child_process";
-import { readdirSync, watch, statSync } from "fs";
+import { readdirSync, statSync, watch } from "fs";
 import path, { ParsedPath } from "path";
 import pidTree from "pidtree";
 import main from "../../src/index";
 import * as utils from "../../src/lib/util";
 import { isRunning } from "../../src/lib/util";
-import { delay, getFixtureFile, cliSync } from "../lib/util";
+import { cliSync, delay, getFixtureFile } from "../lib/util";
 
 afterEach(async () => {
 	await delay(100);
@@ -14,15 +14,15 @@ afterEach(async () => {
 });
 
 const testCasesTs = [
-	{ file: "success1.ts", statusCode: 0 },
-	{ file: "fail1.ts", statusCode: 2 }, // 1: other error, 2: type error
+	{ file: "success1.ts", exitCode: 0 },
+	{ file: "fail1.ts", exitCode: 2 }, // 1: other error, 2: type error
 ];
 const testCasesJs = [
-	{ file: "success2.js", statusCode: 0 },
-	{ file: "fail2.js", statusCode: 2 }, // 1: other error, 2: type error
+	{ file: "success2.js", exitCode: 0 },
+	{ file: "fail2.js", exitCode: 2 }, // 1: other error, 2: type error
 ];
 
-describe("CLI", () => {
+describe("CLI - e2e", () => {
 	it("should return 0 as status code when succeeds", () => {
 		const child = cliSync`${getFixtureFile("success1.ts")} --noEmit`;
 
@@ -38,61 +38,58 @@ describe("CLI", () => {
 		expect(child.stdout.toString()).toMatch("'string' is not assignable to type 'number'");
 	});
 
-	test.each(testCasesTs)("should work if tsconfig is specified - $file", ({ file, statusCode }) => {
+	test.each(testCasesTs)("should work if tsconfig is specified - $file", ({ file, exitCode }) => {
 		const child = cliSync`${getFixtureFile(file)} -p ${getFixtureFile("tsconfig.json")} --noEmit `;
 
-		expect(child.status).toBe(statusCode);
-		if (statusCode !== 0) {
+		expect(child.status).toBe(exitCode);
+		if (exitCode !== 0) {
+			expect(child.stdout.toString()).toMatch("'string' is not assignable to type 'number'");
+		}
+		expect(isRunning(child.pid)).toBe(false);
+	});
+
+	test.each(testCasesJs)("should work if the same flag is specified multiple times - $file", ({ file, exitCode }) => {
+		const child = cliSync`${getFixtureFile(file)} -p ${getFixtureFile(
+			"tsconfig.json",
+		)} --checkJs false --noEmit -p ${getFixtureFile("tsconfig.json")} --checkJs true`;
+		expect(child.status).toBe(exitCode);
+		if (exitCode !== 0) {
 			expect(child.stdout.toString()).toMatch("'string' is not assignable to type 'number'");
 		}
 		expect(isRunning(child.pid)).toBe(false);
 	});
 
 	test.each(testCasesJs)(
-		"should work if the same flag is specified multiple times - $file",
-		({ file, statusCode }) => {
-			const child = cliSync`${getFixtureFile(file)} -p ${getFixtureFile(
-				"tsconfig.json",
-			)} --checkJs false --noEmit -p ${getFixtureFile("tsconfig.json")} --checkJs true`;
-			expect(child.status).toBe(statusCode);
-			if (statusCode !== 0) {
-				expect(child.stdout.toString()).toMatch("'string' is not assignable to type 'number'");
-			}
-			expect(isRunning(child.pid)).toBe(false);
-		},
-	);
-
-	test.each(testCasesJs)(
 		"should override the tsconfig behavior by passing in CLI options - $file",
-		({ file, statusCode }) => {
+		({ file, exitCode }) => {
 			const child = cliSync`${getFixtureFile(file)} -p ${getFixtureFile("tsconfig.json")} --noEmit --checkJs`;
-			expect(child.status).toBe(statusCode);
-			if (statusCode !== 0) {
+			expect(child.status).toBe(exitCode);
+			if (exitCode !== 0) {
 				expect(child.stdout.toString()).toMatch("'string' is not assignable to type 'number'");
 			}
 			expect(isRunning(child.pid)).toBe(false);
 		},
 	);
 
-	it("should return 1 as status code if this project does not contain a package.json file", () => {
+	it("should return 1 as status code if this project does not contain a package.json file", async () => {
 		jest.spyOn(path, "parse").mockReturnValue({
 			root: path.join(__dirname, ".."),
 		} as ParsedPath);
 		jest.spyOn(process, "cwd").mockReturnValue(__dirname);
 		// Seems like that spawnSync spawns a new process that doesn’t inherit the mocked environment from the Jest, so main is used here.
-		const child = main`${getFixtureFile("success1.ts")} --noEmit"`;
-		expect(child.status).toBe(1);
+		const child = await main`${getFixtureFile("success1.ts")} --noEmit"`;
+		expect(child.exitCode).toBe(1);
 		expect(child.stderr).toBe(
 			"Error: Missing package.json file.\nPlease ensure that your project directory contains a package.json file to manage dependencies and configurations.",
 		);
 	});
 
-	it("should return 1 as status code if tsconfig is not found in this project", () => {
+	it("should return 1 as status code if tsconfig is not found in this project", async () => {
 		jest.spyOn(utils, "getNearestTsconfig").mockReturnValue(null);
 		// Seems like that spawnSync spawns a new process that doesn’t inherit the mocked environment from the Jest, so main is used here.
-		const child = main([getFixtureFile("success1.ts"), "--noEmit"]);
+		const child = await main([getFixtureFile("success1.ts"), "--noEmit"]);
 
-		expect(child.status).toBe(1);
+		expect(child.exitCode).toBe(1);
 		expect(child.stderr).toBe("Can't find tsconfig.json from the current working directory or level(s) up.");
 	});
 
@@ -106,14 +103,14 @@ describe("CLI", () => {
 		expect(isRunning(child.pid)).toBe(false);
 	});
 
-	test.each(testCasesTs)("should work if excludeFiles flag is used - $file", ({ file, statusCode }) => {
+	test.each(testCasesTs)("should work if excludeFiles flag is used - $file", ({ file, exitCode }) => {
 		// --excludeFiles: Remove a list of files from the watch mode's processing.
 		const child = cliSync`${getFixtureFile(file)} -p ${getFixtureFile(
 			"tsconfig.json",
 		)} --noEmit --excludeFiles ${getFixtureFile(file)}`;
 
-		expect(child.status).toBe(statusCode);
-		if (statusCode !== 0) {
+		expect(child.status).toBe(exitCode);
+		if (exitCode !== 0) {
 			expect(child.stdout.toString()).toMatch("'string' is not assignable to type 'number'");
 		}
 		expect(isRunning(child.pid)).toBe(false);

@@ -1,30 +1,34 @@
-import { SpawnSyncReturns, spawn } from "child_process";
+import { spawn } from "child_process";
 import fs from "fs";
 import path from "path";
 import {
 	fileExists,
-	getRootDirForCurrentWorkSpace,
 	getNearestTsconfig,
-	spawnProcessSync,
-	toArray,
-	type TemplateExpression,
+	getRootDirForCurrentWorkSpace,
 	processArgs,
 	processJsonData,
 	registerCleanup,
+	runTsc,
+	type SpawnResult,
+	type TemplateExpression,
+	toArray,
 } from "./lib/util";
 
 type SpawnSyncReturnsLike =
-	| SpawnSyncReturns<Buffer>
+	| SpawnResult
 	| {
 			pid: null;
-			status: number;
+			exitCode: number;
 			stderr: string;
 			stdout: null;
 	  };
 
-function main(strings: TemplateStringsArray, ...values: TemplateExpression): SpawnSyncReturnsLike;
-function main(strings: string[], ...values: never[]): SpawnSyncReturnsLike;
-function main(strings: TemplateStringsArray | string[], ...values: TemplateExpression | never[]): SpawnSyncReturnsLike {
+async function main(strings: TemplateStringsArray, ...values: TemplateExpression): Promise<SpawnSyncReturnsLike>;
+async function main(strings: string[], ...values: never[]): Promise<SpawnSyncReturnsLike>;
+async function main(
+	strings: TemplateStringsArray | string[],
+	...values: TemplateExpression | never[]
+): Promise<SpawnSyncReturnsLike> {
 	let args: string[];
 
 	if (Array.isArray(strings) && "raw" in strings) {
@@ -38,7 +42,7 @@ function main(strings: TemplateStringsArray | string[], ...values: TemplateExpre
 	if (!rootDirForCurrentWorkSpace) {
 		return {
 			pid: null,
-			status: 1,
+			exitCode: 1,
 			stderr: "Error: Missing package.json file.\nPlease ensure that your project directory contains a package.json file to manage dependencies and configurations.",
 			stdout: null,
 		};
@@ -52,11 +56,8 @@ function main(strings: TemplateStringsArray | string[], ...values: TemplateExpre
 		return error;
 	}
 
-	let child: SpawnSyncReturns<Buffer>;
-
 	if (files.length === 0) {
-		child = spawnProcessSync(["--pretty", ...args], rootDirForCurrentWorkSpace, isPnp);
-		return child;
+		return await runTsc(["--pretty", ...args], rootDirForCurrentWorkSpace, isPnp);
 	}
 
 	const tsconfig: string | null =
@@ -103,11 +104,12 @@ function main(strings: TemplateStringsArray | string[], ...values: TemplateExpre
 
 		fs.writeFileSync(tmpTsconfig, JSON.stringify(jsonData, null, 2));
 
-		child = spawnProcessSync(
+		const child = await runTsc(
 			["--pretty", "-p", tmpTsconfig, ...remainingCliOptions],
 			rootDirForCurrentWorkSpace,
 			isPnp,
 		);
+
 		if (fileExists(tmpTsconfig)) {
 			fs.unlinkSync(tmpTsconfig);
 		}
@@ -116,7 +118,7 @@ function main(strings: TemplateStringsArray | string[], ...values: TemplateExpre
 
 	return {
 		pid: null,
-		status: 1,
+		exitCode: 1,
 		stderr: tsconfig
 			? `Can't find ${tsconfig}`
 			: "Can't find tsconfig.json from the current working directory or level(s) up.",

@@ -1,6 +1,8 @@
-import { spawnSync } from "child_process";
+import { jest } from "@jest/globals";
+import { ChildProcess, spawnSync } from "child_process";
 import path from "path";
-import { toArray, type TemplateExpression } from "../../src/lib/util";
+import { EventEmitter, Readable } from "stream";
+import { type TemplateExpression, toArray } from "../../src/lib/util";
 
 export const delay = (ms: number) =>
 	new Promise(res =>
@@ -16,4 +18,15 @@ export const cliSync = (strings: TemplateStringsArray, ...values: TemplateExpres
 	return spawnSync("node", [path.join(__dirname, "../../dist/cli.js"), ...cliOptionsArr], {
 		stdio: "pipe",
 	});
+};
+
+export const createMockedChild = () => {
+	const child = new EventEmitter() as ChildProcess & {
+		stderr: Readable;
+		stdout: Readable;
+	};
+	child.stderr = new EventEmitter() as Readable;
+	child.stdout = new EventEmitter() as Readable;
+	child.unref = jest.fn();
+	return child;
 };
