@@ -1,0 +1,19 @@
+name: Prepare Build
+description: "Prepares the repo for a job by running the build"
+# inputs:  - no inputs
+# outputs: - no outputs
+
+runs:
+  using: composite
+  steps:
+    - name: Set up build cache
+      uses: actions/cache@v4
+      id: build-cache
+      with:
+        path: "./dist"
+        key: ${{ runner.os }}-build-${{ github.ref }}-${{ github.run_id }}
+
+    - name: Build
+      if: steps['build-cache'].outputs.cache-hit != 'true'
+      shell: bash
+      run: pnpm build

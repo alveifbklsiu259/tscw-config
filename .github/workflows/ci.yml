@@ -1,0 +1,169 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "**"
+  pull_request:
+    branches:
+      - main
+      - "**"
+
+concurrency:
+  group: "${{ github.workflow }} - ${{ github.head_ref || github.ref }}"
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  NODE_VERSION: 20
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read # for checkout
+
+jobs:
+  install:
+    name: Checkout and Install
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install
+        uses: ./.github/actions/pnpm-install
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+  build:
+    name: Build APP
+    needs: [install]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install
+        uses: ./.github/actions/pnpm-install
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Build
+        uses: ./.github/actions/prepare-build
+
+  lint-without-build:
+    name: Lint without build
+    needs: [install]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        lint-task: [knip, check-format, check-spelling, lint-markdown, lint, lint-commit]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install
+        uses: ./.github/actions/pnpm-install
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Lint
+        run: pnpm ${{ matrix.lint-task }}
+
+  lint-with-build:
+    name: Lint with build
+    needs: [build]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        lint-task: [type-check]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install
+        uses: ./.github/actions/pnpm-install
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Build
+        uses: ./.github/actions/prepare-build
+      - name: Lint
+        run: pnpm ${{ matrix.lint-task }}
+
+  tests:
+    name: Tests
+    needs: [build]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install
+        uses: ./.github/actions/pnpm-install
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Build
+        uses: ./.github/actions/prepare-build
+      - name: Run tests
+        run: pnpm test:coverage
+      - name: Store coverage for uploading
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: ./coverage/lcov.info
+          retention-days: 1
+
+  upload_coverage:
+    name: Upload codecov coverage
+    needs: [tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download coverage reports
+        uses: actions/download-artifact@v4
+        with:
+          path: coverage
+      - name: Publish code coverage report
+        uses: codecov/codecov-action@v4.5.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/**/lcov.info
+
+  release:
+    name: Publish to npm registry, github release
+    needs: [lint-without-build, lint-with-build, tests]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # to be able to publish a GitHub release
+      issues: write # to be able to comment on released issues
+      pull-requests: write # to be able to comment on released pull requests
+      id-token: write # to enable use of OIDC for npm provenance
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install
+        uses: ./.github/actions/pnpm-install
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Build
+        uses: ./.github/actions/prepare-build
+      - name: Release
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,0 +1,22 @@
+{
+	"$schema": "https://json.schemastore.org/semantic-release.json",
+	"repositoryUrl": "https://github.com/alveifbklsiu259/tscw-config",
+	"branches": ["main"],
+	"plugins": [
+		[
+			"@semantic-release/commit-analyzer",
+			{
+				"preset": "conventionalcommits",
+				"presetConfig": {}
+			}
+		],
+		[
+			"@semantic-release/release-notes-generator",
+			{
+				"preset": "conventionalcommits"
+			}
+		],
+		"@semantic-release/npm",
+		"@semantic-release/github"
+	]
+}

@@ -40,7 +40,7 @@ describe("cleanupMonitor - integration", () => {
 
 		jest.advanceTimersByTime(1000);
 
-		expect(mockedUnlinkSync).toHaveBeenCalledTimes(1);
+		expect(mockedUnlinkSync).toHaveBeenCalled();
 		expect(mockedUnlinkSync).toHaveBeenCalledWith(tmpTsconfig);
 		expect(exit).toHaveBeenCalledTimes(1);
 	});

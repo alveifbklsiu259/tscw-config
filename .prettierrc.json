@@ -1,5 +1,6 @@
 {
 	"tabWidth": 4,
+	"endOfLine": "lf",
 	"useTabs": true,
 	"arrowParens": "avoid",
 	"printWidth": 120,
@@ -9,7 +10,7 @@
 	"importOrderCaseInsensitive": true,
 	"overrides": [
 		{
-			"files": "*.{sh,md}",
+			"files": "*.{sh,md,yml,yaml}",
 			"options": {
 				"useTabs": false,
 				"tabWidth": 2

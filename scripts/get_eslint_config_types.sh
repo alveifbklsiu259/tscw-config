@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 tmp_dir="$(mktemp -d)"
-trap 'rm -rf -- "$tmp_dir"' EXIT
+trap 'rm -rf -- "$tmp_dir"' EXIT SIGINT SIGHUP SIGTERM
 
 json_schema=$(mktemp "$tmp_dir/XXXXXX")
 out_file="@types/eslintClassicConfig.d.ts"

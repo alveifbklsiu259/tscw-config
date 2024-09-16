@@ -37,6 +37,12 @@
 		"trivago",
 		"commitlint",
 		"mktemp",
-		"EOTHER"
+		"EOTHER",
+		"codecov",
+		"githubaction",
+		"mcontain",
+		"lintstagedrc",
+		"markdownlintignore",
+		"conventionalcommits"
 	]
 }

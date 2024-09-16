@@ -102,7 +102,7 @@ export default tseslint.config(
 	...tseslint.configs.stylisticTypeChecked,
 
 	{
-		files: ["**/*.{json,md/*.ts}"],
+		files: ["**/*.{json,md/*.js,md/*.ts,md}"],
 		extends: [tseslint.configs.disableTypeChecked],
 	},
 
@@ -134,6 +134,7 @@ export default tseslint.config(
 		files: ["**/*.{md/*.js,md/*.ts}"],
 		rules: {
 			"no-unused-vars": "off",
+			"no-undef": "off",
 			"no-console": "off",
 			"import/no-unresolved": "off",
 			"@typescript-eslint/no-unused-vars": "off",

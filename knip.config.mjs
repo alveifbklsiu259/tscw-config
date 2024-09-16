@@ -15,5 +15,10 @@ export default {
 	ignoreBinaries: ["tscw"],
 	ignoreDependencies: [
 		"json-schema-to-typescript", // used in script
+		// https://github.com/semantic-release/semantic-release/blob/master/docs/usage/plugins.md#default-plugins
+		"@semantic-release/commit-analyzer",
+		"@semantic-release/release-notes-generator",
+		"@semantic-release/npm",
+		"@semantic-release/github",
 	],
 };

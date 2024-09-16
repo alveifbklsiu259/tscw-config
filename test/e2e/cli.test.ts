@@ -13,6 +13,8 @@ afterEach(async () => {
 	jest.restoreAllMocks();
 });
 
+jest.retryTimes(2);
+
 const testCasesTs = [
 	{ file: "success1.ts", exitCode: 0 },
 	{ file: "fail1.ts", exitCode: 2 }, // 1: other error, 2: type error

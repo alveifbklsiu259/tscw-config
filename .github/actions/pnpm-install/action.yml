@@ -1,0 +1,45 @@
+name: pnpm Install
+description: "Run pnpm install with cache enabled"
+inputs:
+  node-version:
+    description: The node version to set up
+    required: true
+
+# outputs: - no outputs
+
+runs:
+  using: composite
+
+  steps:
+    - name: Use Node.js ${{ inputs.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Set up pnpm
+      uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+      with:
+        run_install: false
+
+    - name: Expose pnpm config(s) through "$GITHUB_OUTPUT"
+      id: pnpm-config
+      shell: bash
+      run: |
+        echo "CACHE_FOLDER=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+    - name: Set up pnpm cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.pnpm-config.outputs.CACHE_FOLDER }}
+        key: ${{ runner.os }}-pnpm-cache-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-cache-
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile --prefer-offline
+      env:
+        # Other environment variables
+        HUSKY: "0" # By default do not run HUSKY install
+
+# Reference: https://gist.github.com/belgattitude/838b2eba30c324f1f0033a797bab2e31

@@ -1,16 +1,17 @@
 {
-	"name": "tsc-with-config",
+	"name": "tscw-config",
 	"version": "0.0.0-semantically-released",
 	"author": "alveifbklsiu259 <https://github.com/alveifbklsiu259>",
 	"license": "MIT",
-	"description": "A CLI tool that allows user to run tsc with files and tsconfig.json at the same time",
+	"description": "Run tsc on files with tsconfig respected",
 	"keywords": [
 		"typescript",
-		"tsc"
+		"tsc",
+		"CLI"
 	],
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/alveifbklsiu259/tsc-with-config"
+		"url": "https://github.com/alveifbklsiu259/tscw-config"
 	},
 	"bin": {
 		"tscw": "./dist/cli.js"
@@ -40,6 +41,7 @@
 		"lint-commit": "commitlint --from HEAD~1",
 		"type-check": "node ./dist/cli.js --noEmit -p tsconfig.build.json",
 		"get-eslint-config-types": "bash scripts/get_eslint_config_types.sh",
+		"validate-codecov": "curl -X POST --data-binary @.codecov.yml https://codecov.io/validate",
 		"prepare": "husky"
 	},
 	"peerDependencies": {
@@ -77,9 +79,19 @@
 		"prettier": "^3.3.3",
 		"prettier-plugin-sh": "^0.14.0",
 		"rimraf": "^6.0.1",
+		"semantic-release": "^24.1.0",
 		"ts-jest": "^29.2.5",
 		"typescript": "^5.5.4",
 		"typescript-eslint": "^8.3.0"
 	},
-	"packageManager": "pnpm@9.9.0"
+	"packageManager": "pnpm@9.9.0",
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
+	"pnpm": {
+		"overrides": {
+			"conventional-changelog-conventionalcommits": ">= 8.0.0"
+		}
+	}
 }

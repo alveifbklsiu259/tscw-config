@@ -14,14 +14,14 @@ import {
 	toArray,
 } from "./lib/util";
 
-type SpawnSyncReturnsLike =
-	| SpawnResult
-	| {
-			pid: null;
-			exitCode: number;
-			stderr: string;
-			stdout: null;
-	  };
+interface SpawnError {
+	pid: null;
+	exitCode: number;
+	stderr: string;
+	stdout: null;
+}
+
+type SpawnSyncReturnsLike = SpawnResult | SpawnError;
 
 async function main(strings: TemplateStringsArray, ...values: TemplateExpression): Promise<SpawnSyncReturnsLike>;
 async function main(strings: string[], ...values: never[]): Promise<SpawnSyncReturnsLike>;

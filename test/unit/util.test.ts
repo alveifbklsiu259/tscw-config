@@ -226,6 +226,7 @@ describe("runTsc", () => {
 					args,
 					{
 						stdio: "pipe",
+						shell: process.platform === "win32" ? true : false,
 					},
 				);
 			}
