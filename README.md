@@ -4,12 +4,12 @@
 
 <p align="center">
    <a href="https://www.npmjs.com/package/tscw-config"><img src="https://img.shields.io/npm/v/tscw-config" alt="NPM version" /></a>
-   <a href="https://codecov.io/gh/alveifbklsiu259/tscw-config" ><img src="https://codecov.io/gh/alveifbklsiu259/tscw-config/graph/badge.svg?token=SOI61L1993" alt="codecov"/></a>
+   <a href="https://codecov.io/gh/alveifbklsiu259/tscw-config" ><img src="https://codecov.io/gh/alveifbklsiu259/tscw-config/graph/badge.svg?token=RDNCXAXZGF" alt="codecov"/></a>
    <a href="https://github.com/jestjs/jest" ><img src="https://jestjs.io/img/jest-badge.svg" alt="jest"/></a>
    <a href="https://actions-badge.atrox.dev/alveifbklsiu259/tscw-config/goto?ref=main"><img alt="GitHub actions" src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2Falveifbklsiu259%2Ftscw-config%2Fbadge%3Fref%3Dmain" /></a>
    <a href="https://github.com/semantic-release/semantic-release"><img src="https://img.shields.io/badge/semantic--release-conventionalcommits-e10079?logo=semantic-release" alt="semantic-release: conventionalcommits"/></a>
    <a href="https://npmcharts.com/compare/tscw-config?minimal=true"><img src="https://img.shields.io/npm/dm/tscw-config.svg" alt="NPM downloads"/></a>
-   <a href="https://github.com/alveifbklsiu259/tscw-config/blob/main/LICENSE.md"><img src="https://img.shields.io/npm/l/tscw-config.svg" alt="GitHub license"/></a>
+   <a href="https://github.com/alveifbklsiu259/tscw-config/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/tscw-config" alt="GitHub license"/></a>
 </p>
 
 ## Motivation
