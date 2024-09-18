@@ -18,7 +18,8 @@
 
 `tscw-config` lets you run `tsc` on files while keeping `tsconfig.json` respected.
 
-> [!NOTE] > `tscw-config` stands for **tsc with config**.
+> [!NOTE]  
+> `tscw-config` stands for **tsc with config**.
 
 ## Use cases
 
