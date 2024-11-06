@@ -2,8 +2,11 @@
 module.exports = {
 	testEnvironment: "node",
 	transform: {
-		"^.+.tsx?$": ["ts-jest", {}],
+		"^.+\\.tsx?$": ["ts-jest", {}],
+		"^.+\\.jsx?$": "babel-jest",
 	},
+	// https://stackoverflow.com/questions/75562251/babel-and-jest-configuration-syntaxerror-cannot-use-import-statement-outside-a
+	transformIgnorePatterns: [],
 	testMatch: ["**/test/**/?(*.)+(spec|test).[jt]s?(x)", "!**/fixtures/**"],
 	coveragePathIgnorePatterns: ["<rootDir>/dist/", "<rootDir>/node_modules/", "<rootDir>/test/"],
 	coverageThreshold: {

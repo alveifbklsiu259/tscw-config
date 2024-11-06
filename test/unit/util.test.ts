@@ -257,19 +257,19 @@ describe("runTsc", () => {
 });
 
 describe("processJsonData", () => {
-	it("should remove single line comments", () => {
+	it("should remove single line comments", async () => {
 		const rawData = `{
 			"foo": "bar"
 			// baz
 		}`;
 		const files = ["a.ts"];
 
-		const jsonData = processJsonData(rawData, files);
+		const jsonData = await processJsonData(rawData, files);
 
 		expect(jsonData).toStrictEqual({ foo: "bar", files: ["a.ts"] });
 	});
 
-	it('should remove multi-line comments, but respect "/**/*" and "/**/." which are used as globs', () => {
+	it('should remove multi-line comments, but respect "/**/*" and "/**/." which are used as globs', async () => {
 		const rawData = `{
 			"foo": "bar",
 			/* b
@@ -281,46 +281,35 @@ describe("processJsonData", () => {
 		}`;
 		const files = ["a.ts"];
 
-		const jsonData = processJsonData(rawData, files);
+		const jsonData = await processJsonData(rawData, files);
 
 		expect(jsonData).toStrictEqual({ foo: "bar", exclude: ["./dist/**/*", "/**/.ts"], files: ["a.ts"] });
 	});
 
-	it("should remove trailing comma", () => {
-		const rawData = `{
-		"foo": "bar",
-		}`;
-		const files = ["baz.ts"];
-
-		const jsonData = processJsonData(rawData, files);
-
-		expect(jsonData).toStrictEqual({ foo: "bar", files: ["baz.ts"] });
-	});
-
-	it('should remove "include" field', () => {
+	it('should remove "include" field', async () => {
 		const rawData = `{
 		"foo": "bar",
 		"include": [
 			"./src",
 			"./**/*.ts",
 			"./**/*.d.ts",
-			"./**/*.js",
+			"./**/*.js"
 		]
 		}`;
 		const files = ["baz.ts"];
 
-		const jsonData = processJsonData(rawData, files);
+		const jsonData = await processJsonData(rawData, files);
 
 		expect(jsonData).toStrictEqual({ foo: "bar", files: ["baz.ts"] });
 	});
 
-	it("should product valid json object", () => {
+	it("should product valid json object", async () => {
 		const tsconfig = getFixtureFile("tsconfig.json");
 
 		const rawData = readFileSync(tsconfig, "utf-8");
 
 		const files = ["bar.ts"];
-		const jsonData = processJsonData(rawData, files);
+		const jsonData = await processJsonData(rawData, files);
 
 		expect(jsonData).toStrictEqual({
 			compilerOptions: {

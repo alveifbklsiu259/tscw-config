@@ -148,17 +148,9 @@ export const runTsc = async (
 	});
 };
 
-export const processJsonData = (rawData: string, files: string[]) => {
-	// Remove single-line comments
-	rawData = rawData.replace(/\/\/.*$/gm, "");
-
-	// Remove multi-line comments but respect "/**/*" and "/**/." which are used as globs.
-	rawData = rawData.replace(/\/\*[\s\S]*?\*\/(?!\*|\.)/g, "");
-
-	// Remove trailing comma
-	rawData = rawData.replace(/,\s*([\]}])/g, "$1");
-
-	const jsonData = JSON.parse(rawData) as Record<string, unknown>;
+export const processJsonData = async (rawData: string, files: string[]) => {
+	const stripJsonComments = (await import("strip-json-comments")).default;
+	const jsonData = JSON.parse(stripJsonComments(rawData)) as Record<string, unknown>;
 
 	// Overwrite "files" field
 	jsonData.files = files;

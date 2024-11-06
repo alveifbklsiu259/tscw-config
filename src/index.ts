@@ -81,7 +81,7 @@ async function main(
 			path.relative(path.dirname(tmpTsconfig), file),
 		);
 
-		const jsonData = processJsonData(rawData, relativeFiles);
+		const jsonData = await processJsonData(rawData, relativeFiles);
 
 		// https://nodejs.org/api/process.html#signal-events
 		// On Windows, when a process is terminated by `process.kill` or `subProcess.kill`, signal will not be caught.
