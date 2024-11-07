@@ -1,6 +1,6 @@
 // @ts-check
-import path from "node:path";
-import process from "node:process";
+import { readdirSync } from "node:fs";
+import { join, relative } from "node:path";
 
 /**
  * @param {string} strategy
@@ -26,13 +26,38 @@ const markdownlint = `markdownlint --fix`;
 const jest = "jest --findRelatedTests --passWithNoTests --coverage";
 
 /**
+ * @param {string} dir
+ * @param {RegExp} regex
+ *
+ * @returns {string[]}
+ */
+const getFilesRecursivelySync = (dir, regex) => {
+	const files = readdirSync(dir, { withFileTypes: true });
+	/** @type {string[]} */
+	let result = [];
+
+	for (const file of files) {
+		const fullPath = join(dir, file.name);
+		if (file.isDirectory()) {
+			result = result.concat(getFilesRecursivelySync(fullPath, regex));
+		} else if (regex.test(file.name)) {
+			result.push(fullPath);
+		}
+	}
+	return result;
+};
+
+/**
  * Passing absolute path is fine, but relative path is cleaner in console.
  * @param {string[]} files
  */
 const typeCheck = files => {
 	const cwd = process.cwd();
-	const relativePaths = files.map(file => path.relative(cwd, file)).join(" ");
-	return `npx tscw --noEmit ${relativePaths}`;
+	const relativePaths = files.map(file => relative(cwd, file)).join(" ");
+	// Include all the declaration files for the current project.
+	const declarationFiles = getFilesRecursivelySync("./@types", /\.d\.ts$/).join(" ");
+
+	return `npx tscw --noEmit ${relativePaths} ${declarationFiles}`;
 };
 
 export default {

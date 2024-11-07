@@ -31,6 +31,9 @@ You can explicitly pass the CLI options in. e.g. `--strict --allowSyntheticDefau
 
 Using `tscw` is much easier: `tscw --noEmit foo.ts bar.ts -p tsconfig.json`.
 
+> [!IMPORTANT]  
+> There're cases that declaration files need to be included, see [Include declaration files](#include-declaration-files).
+
 ## Getting Started
 
 `tscw` seamlessly integrates with most popular package managers, including:
@@ -93,7 +96,10 @@ Here's an example of using it in a `.lintstagedrc.js` file. You can also check o
 const typeCheck = files => {
   const cwd = process.cwd();
   const relativePaths = files.map(file => path.relative(cwd, file)).join(" ");
-  return `npx tscw --noEmit ${relativePaths}`;
+  // Include all the declaration files for the current project.
+  const declarationFiles = getFilesRecursivelySync("./@types", /\.d\.ts$/).join(" ");
+
+  return `npx tscw --noEmit ${relativePaths} ${declarationFiles}`;
 };
 
 export default {
@@ -237,3 +243,99 @@ console.log(result2.stderr); // ""
 > Technically, to fix the cleanup problem, using [`options.detached`](https://nodejs.org/api/child_process.html#optionsdetached) for a child process would be enough, but [lint-staged](https://github.com/lint-staged/lint-staged) takes the approach of [terminating all the child processes by calling `process.kill`](https://github.com/lint-staged/lint-staged/blob/master/lib/resolveTaskFn.js#L55) on the tasks that are `KILLED`(When multiple tasks are running concurrently, if one task `FAILED`, other tasks will be `KILLED`).
 >
 > In order to properly fix this problem, `tscw-config` creates a [daemon](<https://en.wikipedia.org/wiki/Daemon_(computing)>) to handle the cleanup task if it is running on Windows. The daemon will exit gracefully after the temporary file is deleted or, at most, after 1 minute.
+
+## Troubleshooting
+
+### Include declaration files
+
+Under the hood, `tscw` creates a copy of the `tsconfig.json` and removes the `include` filed. This means that all the declaration files specified it in the `include` field will not be respected when you run `tscw`.
+
+#### Example
+
+Consider that there're two files:
+
+- `foo.ts`
+- `foo.module.css`
+
+```ts
+// foo.ts
+import styles from "./foo.module.css";
+
+console.log(styles);
+```
+
+```sh
+npx tscw --noEmit foo.ts
+```
+
+```sh
+foo.ts:1:20 - error TS2307: Cannot find module './foo.module.css' or its corresponding type declarations.
+
+1 import styles from "./foo.module.css"
+
+Found 1 error in foo.ts:1
+```
+
+This can easily be solved by including a necessary declaration file in the `include` field of your `tsconfig.json`, but when `tscw` is run, it creates a copy of that `tsconfig.json` with the `include` field stripped out. Here're some workarounds:
+
+#### Workarounds
+
+##### 1. Include the declaration in the file
+
+```ts
+/// <reference path="path-to-declaration.d.ts" />
+// or use import
+import "path-to-declaration";
+import styles from "./foo.module.css";
+```
+
+You can simply include the declaration file in the file. But this can quickly get messy if you have multiple files that need declaration file(s).
+
+##### 2. Pass declaration files to `tscw`
+
+Here's an example using it in a `lintstagedrc` file, you can check out the [.lintstagedrc.mjs in this project](/.lintstagedrc.mjs).
+
+```js
+/**
+ * @param {string} dir
+ * @param {RegExp} regex
+ *
+ * @returns {string[]}
+ */
+const getFilesRecursivelySync = (dir, regex) => {
+  const files = readdirSync(dir, { withFileTypes: true });
+  /** @type {string[]} */
+  let result = [];
+
+  for (const file of files) {
+    const fullPath = join(dir, file.name);
+    if (file.isDirectory()) {
+      result = result.concat(getFilesRecursivelySync(fullPath, regex));
+    } else if (regex.test(file.name)) {
+      result.push(fullPath);
+    }
+  }
+  return result;
+};
+
+/**
+ * Passing absolute path is fine, but relative path is cleaner in console.
+ * @param {string[]} files
+ */
+const typeCheck = files => {
+  const cwd = process.cwd();
+  const relativePaths = files.map(file => relative(cwd, file)).join(" ");
+  // Include all the declaration files for the current project.
+  const declarationFiles = getFilesRecursivelySync("./@types", /\.d\.ts$/).join(" ");
+
+  return `npx tscw --noEmit ${relativePaths} ${declarationFiles}`;
+};
+
+export default {
+  "*": [cspell],
+  "**/*.{ts,mts,cts,tsx}": [prettier, typeCheck, eslint],
+  "./src/*.{ts,mts,cts,tsx}": [jest],
+  "**/*.{js,mjs,cjs,jsx,json}": [prettier, eslint],
+  "**/*.md": [prettier, markdownlint, eslint],
+};
+```
