@@ -259,7 +259,8 @@ You can write a local hook with the `tscw` API, it's pretty simple:
 `pre-commit-config.yaml`:
 
 ```yaml
-- repo: local
+repos:
+  - repo: local
     hooks:
       - id: type-checking
         name: Check Type
@@ -270,6 +271,8 @@ You can write a local hook with the `tscw` API, it's pretty simple:
 ```
 
 `check-type.js`
+
+Note: Remember to make it an executable: `chmod +x check-type.js`
 
 ```js
 #!/usr/bin/env node
@@ -303,8 +306,11 @@ const getFilesRecursivelySync = (dir, regex) => {
 void (async () => {
   const args = process.argv.slice(2);
 
-  // Include all the declaration files for the current project.
-  const declarationFiles = getFilesRecursivelySync("./@types", /\.d\.ts$/).join(" ");
+  // Include all the declaration files for the current project if needed.
+  const declarationFiles = getFilesRecursivelySync(
+    "./@types" /* adjust the dirname for your project */,
+    /\.d\.ts$/,
+  ).join(" ");
 
   try {
     const child = await tscw`${args.join(" ")} ${declarationFiles}`;
