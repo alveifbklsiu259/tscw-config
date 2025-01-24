@@ -41,8 +41,10 @@
 		"codecov",
 		"githubaction",
 		"mcontain",
+		"lintstaged",
 		"lintstagedrc",
 		"markdownlintignore",
-		"conventionalcommits"
+		"conventionalcommits",
+		"includedeclarationdir"
 	]
 }

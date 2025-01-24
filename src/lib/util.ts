@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
+import fs, { readdirSync } from "node:fs";
+import path, { join } from "node:path";
 
 export const fileExists = (...paths: string[]) => fs.existsSync(path.join(...paths));
 
@@ -17,10 +17,27 @@ export const getRootDirForCurrentWorkSpace = () => {
 	return null;
 };
 
+export const getFilesRecursivelySync = (dir: string, regex: RegExp) => {
+	const files = readdirSync(dir, { withFileTypes: true });
+
+	let result: string[] = [];
+
+	for (const file of files) {
+		const fullPath = join(dir, file.name);
+		if (file.isDirectory()) {
+			result = result.concat(getFilesRecursivelySync(fullPath, regex));
+		} else if (regex.test(file.name)) {
+			result.push(fullPath);
+		}
+	}
+	return result;
+};
+
 export const processArgs = (args: string[]) => {
 	let indexOfProjectFlag = -1;
 	const remainingCliOptions: string[] = [];
 	const files: string[] = [];
+	let declarationFiles: string[] = [];
 
 	let skipNext = false;
 
@@ -39,6 +56,34 @@ export const processArgs = (args: string[]) => {
 						pid: null,
 						exitCode: 1,
 						stderr: `Missing argument for ${arg}`,
+						stdout: null,
+					},
+				};
+			}
+			skipNext = true;
+		} else if (arg.toLowerCase() === "--includedeclarationdir") {
+			const declarationDir = args[idx + 1];
+
+			if (!declarationDir) {
+				return {
+					error: {
+						pid: null,
+						exitCode: 1,
+						stderr: `Missing argument for ${arg}`,
+						stdout: null,
+					},
+				};
+			}
+
+			try {
+				declarationFiles = getFilesRecursivelySync(declarationDir, /\.d\.ts$/);
+			} catch (_) {
+				return {
+					error: {
+						pid: null,
+						exitCode: 1,
+						// stderr: e instanceof Error ? e.message : `Invalid argument for ${arg}`,
+						stderr: `Invalid argument for ${arg}`,
 						stdout: null,
 					},
 				};
@@ -70,7 +115,7 @@ export const processArgs = (args: string[]) => {
 		}
 	}
 
-	return { indexOfProjectFlag, remainingCliOptions, files, error: null };
+	return { indexOfProjectFlag, remainingCliOptions, files, error: null, declarationFiles };
 };
 
 export const getNearestTsconfig = (rootDirForCurrentWorkSpace: string) => {
@@ -175,7 +220,7 @@ export const isRunning = (pid: number) => {
 
 export type TemplateExpression = (string | number)[];
 
-export const toArray = (strings: TemplateStringsArray, ...values: TemplateExpression) => {
+export const templateLiteralToArray = (strings: TemplateStringsArray, ...values: TemplateExpression) => {
 	const str = strings.reduce(
 		(acc, curr, i) =>
 			acc +
@@ -186,6 +231,13 @@ export const toArray = (strings: TemplateStringsArray, ...values: TemplateExpres
 	const arr = str.split(" ").filter(e => e !== "");
 	return arr;
 };
+
+export const isTemplateStringsArray = (arr: readonly unknown[]): arr is TemplateStringsArray => {
+	return Array.isArray(arr) && "raw" in arr;
+};
+
+export const getArgArray = (arr: TemplateStringsArray | string[], ...args: TemplateExpression | never[]) =>
+	isTemplateStringsArray(arr) ? templateLiteralToArray(arr, ...(args as TemplateExpression)) : arr;
 
 export const registerCleanup = (process: NodeJS.Process, tmpTsconfig: string) => {
 	for (const signal of ["exit", "SIGHUP", "SIGINT", "SIGTERM"] as const) {

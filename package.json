@@ -39,10 +39,10 @@
 		"lint-markdown": "markdownlint \"**/*.md\"",
 		"lint": "eslint . --report-unused-disable-directives",
 		"lint-commit": "commitlint --from HEAD~1",
-		"type-check": "node ./dist/cli.js --noEmit -p tsconfig.build.json",
+		"type-check": "node ./dist/cli.js --noEmit -p tsconfig.build.json --includeDeclarationDir @types",
 		"get-eslint-config-types": "bash scripts/get_eslint_config_types.sh",
 		"validate-codecov": "curl -X POST --data-binary @.codecov.yml https://codecov.io/validate",
-		"prepare": "husky"
+		"postinstall": "husky"
 	},
 	"peerDependencies": {
 		"typescript": ">=2.0.0"

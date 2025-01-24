@@ -23,7 +23,7 @@
 
 ## Use cases
 
-A common use case for running `tsc` on certain files is when used in a pre-commit hook. e.g. [lint-staged](https://github.com/lint-staged/lint-staged).
+A common use case for running `tsc` on certain files is when used in a pre-commit hook. e.g. [lint-staged](https://github.com/lint-staged/lint-staged), [pre-commit](https://pre-commit.com/).
 
 For example, you may want to type-check staged files by running `tsc --noEmit foo.ts bar.ts`. In this case `tsc` will ignore the `tsconfig.json`, using `-p tsconfig.json` with files will result in an error.
 
@@ -31,8 +31,10 @@ You can explicitly pass the CLI options in. e.g. `--strict --allowSyntheticDefau
 
 Using `tscw` is much easier: `tscw --noEmit foo.ts bar.ts -p tsconfig.json`.
 
-> [!IMPORTANT]  
-> There're cases that declaration files need to be included, see [Include declaration files](#include-declaration-files).
+> [!IMPORTANT]
+>
+> - There're cases that declaration files need to be included even though you just want to type-check some files, you can specify the declaration directory with `--includeDeclarationDir`, for example: `npx tscw --noEmit foo.ts --includeDeclarationDir @types`, it will include all the files that end with `.d.ts` in `@types` and any sub-directories. If you need more fine-grained control, see [Include declaration files](#include-declaration-files).
+> - `tscw` can be used with [pre-commit](https://pre-commit.com/), see [Recipes](#recipes).
 
 ## Getting Started
 
@@ -114,7 +116,7 @@ yarn tscw foo.ts
 ```
 
 > [!NOTE]  
-> `tscw` supports all [CLI options](https://www.typescriptlang.org/docs/handbook/compiler-options.html) supported by `tsc`.
+> `tscw` supports all [CLI options](https://www.typescriptlang.org/docs/handbook/compiler-options.html) supported by `tsc`. Other than that, you can use `--includeDeclarationDir` to include declaration files.
 
 ### API
 
@@ -244,6 +246,99 @@ console.log(result2.stderr); // ""
 >
 > In order to properly fix this problem, `tscw-config` creates a [daemon](<https://en.wikipedia.org/wiki/Daemon_(computing)>) to handle the cleanup task if it is running on Windows. The daemon will exit gracefully after the temporary file is deleted or, at most, after 1 minute.
 
+## Recipes
+
+### lintstaged
+
+Check out the [.lintstagedrc.mjs in this project](/.lintstagedrc.mjs).
+
+### pre-commit
+
+To use `tscw` with `pre-commit`, you need to install `tscw` locally to your project. e.g. `npm i -D tscw-config`. Note that it has to be the versions after `v1.1.0`.
+
+Then create `.pre-commit-config.yaml` that looks something like:
+
+```yaml
+repos:
+  - repo: https://github.com/alveifbklsiu259/tscw-config
+    rev: v1.1.0 # Use the ref you want after v.1.1.0
+    hooks:
+      - id: tscw-config
+        args: ["--noEmit"]
+        # args: ["--noEmit", "--includeDeclarationDir", "@types"] # if you want to include declaration directory.
+        types_or: ["ts", "tsx"]
+        # types_or: ["javascript", "jsx", "ts", "tsx"] # if you want to also check js(x).
+```
+
+If you want more fine-grained control, you can write a local hook with the `tscw` API:
+
+`pre-commit-config.yaml`:
+
+```yaml
+- repo: local
+    hooks:
+      - id: type-checking
+        name: Check Type
+        entry: ./check-type.js
+        args: ["--noEmit"]
+        language: node
+        types_or: [ts, tsx]
+```
+
+`check-type.js`
+
+```js
+#!/usr/bin/env node
+const { exit } = require("process");
+const { join } = require("node:path");
+const { readdirSync } = require("node:fs");
+const tscw = require("tscw-config");
+
+/**
+ * @param {string} dir
+ * @param {RegExp} regex
+ *
+ * @returns {string[]}
+ */
+const getFilesRecursivelySync = (dir, regex) => {
+  const files = readdirSync(dir, { withFileTypes: true });
+  /** @type {string[]} */
+  let result = [];
+
+  for (const file of files) {
+    const fullPath = join(dir, file.name);
+    if (file.isDirectory()) {
+      result = result.concat(getFilesRecursivelySync(fullPath, regex));
+    } else if (regex.test(file.name)) {
+      result.push(fullPath);
+    }
+  }
+  return result;
+};
+
+void (async () => {
+  const args = process.argv.slice(2);
+
+  // Include all the declaration files for the current project.
+  const declarationFiles = getFilesRecursivelySync("./@types", /\.d\.ts$/).join(" ");
+
+  try {
+    const child = await tscw`${args.join(" ")} ${declarationFiles}`;
+
+    if (child.stdout) {
+      console.log(child.stdout);
+    } else {
+      console.log(child.stderr);
+    }
+
+    exit(child.exitCode);
+  } catch (e) {
+    console.error(e);
+    exit(1);
+  }
+})();
+```
+
 ## Troubleshooting
 
 ### Include declaration files
@@ -293,7 +388,24 @@ You can simply include the declaration file in the file. But this can quickly ge
 
 ##### 2. Pass declaration files to `tscw`
 
+You can use the `--includeDeclarationDir` flag to include your declaration files directory, `tscw` will include all the files that end with `.d.ts` in that directory and all its sub-directories
+
 Here's an example using it in a `lintstagedrc` file, you can check out the [.lintstagedrc.mjs in this project](/.lintstagedrc.mjs).
+
+```js
+/**
+ * Passing absolute path is fine, but relative path is cleaner in console.
+ * @param {string[]} files
+ */
+const typeCheck = files => {
+  const cwd = process.cwd();
+  const relativePaths = files.map(file => relative(cwd, file)).join(" ");
+
+  return `npx tscw --noEmit --includeDeclarationDir ./@types ${relativePaths}`;
+};
+```
+
+If you need more fine-grained control, you can include the declaration files manually, for example:
 
 ```js
 /**
@@ -329,13 +441,5 @@ const typeCheck = files => {
   const declarationFiles = getFilesRecursivelySync("./@types", /\.d\.ts$/).join(" ");
 
   return `npx tscw --noEmit ${relativePaths} ${declarationFiles}`;
-};
-
-export default {
-  "*": [cspell],
-  "**/*.{ts,mts,cts,tsx}": [prettier, typeCheck, eslint],
-  "./src/*.{ts,mts,cts,tsx}": [jest],
-  "**/*.{js,mjs,cjs,jsx,json}": [prettier, eslint],
-  "**/*.md": [prettier, markdownlint, eslint],
 };
 ```

@@ -1,0 +1,6 @@
+- id: tscw-config
+  name: Check type
+  description: This hook uses tscw-config to type-check staged files.
+  entry: npx tscw
+  language: node
+  types_or: [ts, tsx]

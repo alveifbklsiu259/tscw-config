@@ -122,4 +122,53 @@ describe("main - e2e", () => {
 			stdout: null,
 		});
 	});
+
+	it("should return type error when declaration files are required but not included", async () => {
+		const child = await main`${getFixtureFile("need-declaration.ts")} --noEmit`;
+
+		expect(child.exitCode).toBe(2);
+		expect(child.stdout).toMatch("Property 'foo' does not exist on type 'Window & typeof globalThis'.");
+	});
+
+	it("should return an error when missing arg for `--includeDeclarationDir`", async () => {
+		const child = await main`${getFixtureFile("need-declaration.ts")} --noEmit --includeDeclarationDir`;
+
+		expect(child).toStrictEqual({
+			pid: null,
+			exitCode: 1,
+			stderr: "Missing argument for --includeDeclarationDir",
+			stdout: null,
+		});
+	});
+
+	it("should return an error when invalid arg is used for `--includeDeclarationDir`", async () => {
+		const child = await main`${getFixtureFile("need-declaration.ts")} --noEmit --includeDeclarationDir no-such-dir`;
+
+		expect(child).toStrictEqual({
+			pid: null,
+			exitCode: 1,
+			stderr: "Invalid argument for --includeDeclarationDir",
+			stdout: null,
+		});
+	});
+
+	it("should return an error when a file is used as an arg for `--includeDeclarationDir`", async () => {
+		const file = getFixtureFile("success1.ts");
+		const child = await main`${getFixtureFile("need-declaration.ts")} --noEmit --includeDeclarationDir ${file}`;
+
+		expect(child).toStrictEqual({
+			pid: null,
+			exitCode: 1,
+			stderr: "Invalid argument for --includeDeclarationDir",
+			stdout: null,
+		});
+	});
+
+	it("should include declaration files with `--includeDeclarationDir` flag", async () => {
+		const declarationDir = path.join(__dirname, "../fixtures/@types");
+		const child =
+			await main`${getFixtureFile("need-declaration.ts")} --noEmit --includeDeclarationDir ${declarationDir}`;
+
+		expect(child.exitCode).toBe(0);
+	});
 });

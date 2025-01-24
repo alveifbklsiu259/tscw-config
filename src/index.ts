@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import {
 	fileExists,
+	getArgArray,
 	getNearestTsconfig,
 	getRootDirForCurrentWorkSpace,
 	processArgs,
@@ -11,7 +12,6 @@ import {
 	runTsc,
 	type SpawnResult,
 	type TemplateExpression,
-	toArray,
 } from "./lib/util";
 
 interface SpawnError {
@@ -29,35 +29,35 @@ async function main(
 	strings: TemplateStringsArray | string[],
 	...values: TemplateExpression | never[]
 ): Promise<SpawnSyncReturnsLike> {
-	let args: string[];
-
-	if (Array.isArray(strings) && "raw" in strings) {
-		args = toArray(strings as TemplateStringsArray, ...(values as TemplateExpression));
-	} else {
-		args = strings as string[];
-	}
-
+	const args = getArgArray(strings, ...values);
 	const rootDirForCurrentWorkSpace = getRootDirForCurrentWorkSpace();
 
 	if (!rootDirForCurrentWorkSpace) {
 		return {
 			pid: null,
 			exitCode: 1,
-			stderr: "Error: Missing package.json file.\nPlease ensure that your project directory contains a package.json file to manage dependencies and configurations.",
+			stderr:
+				"Error: Missing package.json file.\nPlease ensure that your project directory " +
+				"contains a package.json file to manage dependencies and configurations.",
 			stdout: null,
 		};
 	}
 
 	const isPnp = fileExists(path.join(rootDirForCurrentWorkSpace, ".pnp.cjs")) || !!process.versions.pnp;
 
-	const { indexOfProjectFlag, remainingCliOptions, files, error } = processArgs(args);
+	const { indexOfProjectFlag, remainingCliOptions, files, error, declarationFiles } = processArgs(args);
 
 	if (error) {
 		return error;
 	}
 
 	if (files.length === 0) {
-		return await runTsc(["--pretty", ...args], rootDirForCurrentWorkSpace, isPnp);
+		const newArgs = ["--pretty", ...remainingCliOptions];
+		if (indexOfProjectFlag !== -1) {
+			newArgs.push("-p", args[indexOfProjectFlag + 1]);
+		}
+
+		return await runTsc(newArgs, rootDirForCurrentWorkSpace, isPnp);
 	}
 
 	const tsconfig: string | null =
@@ -76,7 +76,7 @@ async function main(
 
 		const rawData = fs.readFileSync(tsconfig, "utf-8");
 
-		const relativeFiles = files.map(file =>
+		const relativeFiles = files.concat(declarationFiles).map(file =>
 			// allow user to run the binary regardless of the current working directory
 			path.relative(path.dirname(tmpTsconfig), file),
 		);
@@ -120,7 +120,7 @@ async function main(
 		pid: null,
 		exitCode: 1,
 		stderr: tsconfig
-			? `Can't find ${tsconfig}`
+			? `Can't find ${args[indexOfProjectFlag + 1]}`
 			: "Can't find tsconfig.json from the current working directory or level(s) up.",
 		stdout: null,
 	};

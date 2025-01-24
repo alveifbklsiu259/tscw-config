@@ -1,18 +1,21 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, jest, test } from "@jest/globals";
 import childProcess from "node:child_process";
-import fs, { readFileSync } from "node:fs";
+import fs, { Dirent, PathLike, readFileSync } from "node:fs";
 import path, { type ParsedPath } from "node:path";
 import { EventEmitter } from "node:stream";
 import {
 	fileExists,
+	getArgArray,
+	getFilesRecursivelySync,
 	getNearestTsconfig,
 	getRootDirForCurrentWorkSpace,
 	isRunning,
+	isTemplateStringsArray,
 	processArgs,
 	processJsonData,
 	registerCleanup,
 	runTsc,
-	toArray,
+	templateLiteralToArray,
 } from "../../src/lib/util";
 import * as utils from "../../src/lib/util";
 import "../lib/toBeWithinRange";
@@ -147,6 +150,47 @@ describe("processArgs", () => {
 
 		expect(indexOfProjectFlag).toBe(0);
 		expect(remainingCliOptions).toStrictEqual(["--lib", "ES5,DOM"]);
+	});
+});
+
+describe("getFilesRecursivelySync", () => {
+	const mockDir = "mockDir";
+	const mockRegex = /\.js$/;
+
+	it("should return an array of file paths matching the regex", () => {
+		jest.spyOn(fs, "readdirSync").mockImplementation((path: PathLike) => {
+			if (path === "mockDir") {
+				return [
+					{ name: "file1.js", isDirectory: () => false },
+					{ name: "file2.txt", isDirectory: () => false },
+					{ name: "subdir", isDirectory: () => true },
+				] as Dirent[];
+			} else if (path === "mockDir/subdir") {
+				return [
+					{ name: "file3.js", isDirectory: () => false },
+					{ name: "file4.txt", isDirectory: () => false },
+					{ name: "subdir2", isDirectory: () => true },
+				] as Dirent[];
+			} else if (path === "mockDir/subdir/subdir2") {
+				return [
+					{ name: "file5.jsx", isDirectory: () => false },
+					{ name: "file6.js", isDirectory: () => false },
+				] as Dirent[];
+			}
+			return [] as Dirent[];
+		});
+
+		jest.spyOn(path, "join").mockImplementation((...args) => args.join("/"));
+
+		const result = getFilesRecursivelySync(mockDir, mockRegex);
+		expect(result).toEqual(["mockDir/file1.js", "mockDir/subdir/file3.js", "mockDir/subdir/subdir2/file6.js"]);
+	});
+
+	it("should throw an error when receiving invalid arg for dirname", () => {
+		const declarationDir = path.join(__dirname, "./no-such-dir");
+		expect(() => {
+			getFilesRecursivelySync(declarationDir, /\.d\.ts$/);
+		}).toThrow();
 	});
 });
 
@@ -409,7 +453,45 @@ describe("isRunning", () => {
 	});
 });
 
-describe("toArray", () => {
+describe("isTemplateStringsArray", () => {
+	it("should return false for regular array", () => {
+		const intArr = [1, 2];
+		const strArr = ["a", "b"];
+		const boolArr = [true, false];
+		expect(isTemplateStringsArray(intArr)).toBe(false);
+		expect(isTemplateStringsArray(strArr)).toBe(false);
+		expect(isTemplateStringsArray(boolArr)).toBe(false);
+	});
+
+	it("should return true for templateStringArray", () => {
+		const foo = (a: readonly unknown[], ..._: unknown[]) => {
+			return isTemplateStringsArray(a);
+		};
+
+		const res1 = foo`foo bar`;
+		const res2 = foo`1 2 3`;
+		const res3 = foo`true false ${1 + 1}`;
+
+		expect(res1).toBe(true);
+		expect(res2).toBe(true);
+		expect(res3).toBe(true);
+	});
+});
+
+describe("getArgArray", () => {
+	it("should return an array when it receives array", () => {
+		const arr = ["foo", "bar"];
+		const args = getArgArray(arr);
+
+		expect(args).toEqual(arr);
+	});
+
+	it("should return an array when it receives template literal", () => {
+		expect(getArgArray`foo bar`).toEqual(["foo", "bar"]);
+	});
+});
+
+describe("templateLiteralToArray", () => {
 	it("should return an array of string", () => {
 		const a = "foo";
 		const b = "bar";
@@ -419,7 +501,7 @@ describe("toArray", () => {
 		const f = 0;
 		const g = NaN;
 		//@ts-expect-error - data that are not string or number will be filtered out
-		const arr = toArray`baz ${a} dog ${b} ${c} cat ${d} ${e} banana ${f} 42 ${g}`;
+		const arr = templateLiteralToArray`baz ${a} dog ${b} ${c} cat ${d} ${e} banana ${f} 42 ${g}`;
 
 		expect(arr).toStrictEqual(["baz", "foo", "dog", "bar", "cat", "banana", "0", "42"]);
 	});
