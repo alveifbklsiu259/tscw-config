@@ -84,6 +84,9 @@ npx tscw *.ts
 # match ./foo/baz.ts, ./bar/foo.ts ...
 npx tscw **/*.ts
 
+# include declaration files directory, by default, it recursively searches for files that end with .d.ts in the specified directory
+npx tscw --noEmit --includeDeclarationDir ./@types
+
 # you can even use it without any files specified
 npx tscw --noEmit # it is the same as npx tsc --noEmit
 ```
@@ -98,10 +101,8 @@ Here's an example of using it in a `.lintstagedrc.js` file. You can also check o
 const typeCheck = files => {
   const cwd = process.cwd();
   const relativePaths = files.map(file => path.relative(cwd, file)).join(" ");
-  // Include all the declaration files for the current project.
-  const declarationFiles = getFilesRecursivelySync("./@types", /\.d\.ts$/).join(" ");
-
-  return `npx tscw --noEmit ${relativePaths} ${declarationFiles}`;
+  // if you need to include declaration files, use --includeDeclarationDir path-to-declaration-dir
+  return `npx tscw --noEmit ${relativePaths} --includeDeclarationDir @types`;
 };
 
 export default {
@@ -314,6 +315,8 @@ void (async () => {
 
   try {
     const child = await tscw`${args.join(" ")} ${declarationFiles}`;
+
+    // You can also use the --includeDeclarationDir flag, e.g. tscw`${args.join(" ")} --includeDeclarationDir @types`
 
     if (child.stdout) {
       console.log(child.stdout);
