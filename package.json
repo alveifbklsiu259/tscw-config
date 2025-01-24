@@ -42,7 +42,7 @@
 		"type-check": "node ./dist/cli.js --noEmit -p tsconfig.build.json --includeDeclarationDir @types",
 		"get-eslint-config-types": "bash scripts/get_eslint_config_types.sh",
 		"validate-codecov": "curl -X POST --data-binary @.codecov.yml https://codecov.io/validate",
-		"postinstall": "husky"
+		"prepare": "husky"
 	},
 	"peerDependencies": {
 		"typescript": ">=2.0.0"

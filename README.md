@@ -254,23 +254,7 @@ Check out the [.lintstagedrc.mjs in this project](/.lintstagedrc.mjs).
 
 ### pre-commit
 
-To use `tscw` with `pre-commit`, you need to install `tscw` locally to your project. e.g. `npm i -D tscw-config`. Note that it has to be the versions after `v1.1.0`.
-
-Then create `.pre-commit-config.yaml` that looks something like:
-
-```yaml
-repos:
-  - repo: https://github.com/alveifbklsiu259/tscw-config
-    rev: v1.1.0 # Use the ref you want after v.1.1.0
-    hooks:
-      - id: tscw-config
-        args: ["--noEmit"]
-        # args: ["--noEmit", "--includeDeclarationDir", "@types"] # if you want to include declaration directory.
-        types_or: ["ts", "tsx"]
-        # types_or: ["javascript", "jsx", "ts", "tsx"] # if you want to also check js(x).
-```
-
-If you want more fine-grained control, you can write a local hook with the `tscw` API:
+You can write a local hook with the `tscw` API, it's pretty simple:
 
 `pre-commit-config.yaml`:
 
@@ -338,6 +322,9 @@ void (async () => {
   }
 })();
 ```
+
+> [!NOTE]  
+> This project uses [`husky`](https://typicode.github.io/husky/) for pre-commit hooks, it seems to have some conflicts with [`pre-commit`](https://pre-commit.com/), so we currently don't provide a [`pre-commit`](https://pre-commit.com/) hook for consumption, but you can always use `tscw`'s API to write a local hook.
 
 ## Troubleshooting
 
