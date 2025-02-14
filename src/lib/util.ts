@@ -195,7 +195,10 @@ export const runTsc = async (
 
 export const processJsonData = async (rawData: string, files: string[]) => {
 	const stripJsonComments = (await import("strip-json-comments")).default;
-	const jsonData = JSON.parse(stripJsonComments(rawData)) as Record<string, unknown>;
+
+	// Remove tailing comma
+	const cleanedData = rawData.replace(/,\s*([}\]])/g, "$1");
+	const jsonData = JSON.parse(stripJsonComments(cleanedData)) as Record<string, unknown>;
 
 	// Overwrite "files" field
 	jsonData.files = files;

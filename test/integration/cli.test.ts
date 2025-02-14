@@ -22,9 +22,9 @@ afterEach(() => {
 });
 
 describe("CLI - integration", () => {
-	it("should call main, log stderr then exit", async () => {
+	it("should call main, console.error stderr then exit", async () => {
 		const result = { pid: null, exitCode: 1, stderr: "Missing argument for -p", stdout: null };
-		jest.spyOn(console, "log").mockImplementation(() => {});
+		jest.spyOn(console, "error").mockImplementation(() => {});
 
 		(main as jest.Mocked<typeof main>).mockResolvedValue(result);
 
@@ -32,14 +32,14 @@ describe("CLI - integration", () => {
 		await require("../../src/cli");
 
 		expect(main).toHaveBeenCalledTimes(1);
-		expect(console.log).toHaveBeenCalledTimes(1);
-		expect(console.log).toHaveBeenCalledWith(result.stderr);
+		expect(console.error).toHaveBeenCalledTimes(1);
+		expect(console.error).toHaveBeenCalledWith(result.stderr);
 
 		expect(exit).toHaveBeenCalledTimes(1);
 		expect(exit).toHaveBeenCalledWith(result.exitCode);
 	});
 
-	it("should call main, log stdout then exit", async () => {
+	it("should call main, console.log stdout then exit", async () => {
 		/* eslint-disable-next-line */
 		const { exit } = require("process");
 		/* eslint-disable-next-line */
@@ -67,7 +67,7 @@ describe("CLI - integration", () => {
 		expect(exit).toHaveBeenCalledWith(result.exitCode);
 	});
 
-	it("should log the error and exit with 1 when fail to spawn", async () => {
+	it("should console.error the error and exit with 1 when fail to spawn", async () => {
 		/* eslint-disable-next-line */
 		const { exit } = require("process");
 		/* eslint-disable-next-line */
@@ -82,8 +82,11 @@ describe("CLI - integration", () => {
 		/* eslint-disable-next-line */
 		await require("../../src/cli");
 
-		expect(console.error).toHaveBeenCalledTimes(1);
-		expect(console.error).toHaveBeenCalledWith(error);
+		expect(console.error).toHaveBeenCalledTimes(2);
+		expect(console.error).toHaveBeenCalledWith("Failed to execute type checking:", {
+			code: "ENOENT",
+			errno: -4058,
+		});
 		expect(exit).toHaveBeenCalledTimes(1);
 		expect(exit).toHaveBeenCalledWith(1);
 	});

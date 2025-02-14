@@ -11,12 +11,13 @@ void (async () => {
 		if (child.stdout) {
 			console.log(child.stdout);
 		} else {
-			console.log(child.stderr);
+			console.error(child.stderr);
 		}
 
 		exit(child.exitCode);
 	} catch (e) {
-		console.error(e);
+		console.error("Failed to execute type checking:", e);
+		console.error("Received arguments:", args.join(" "));
 		exit(1);
 	}
 })();
